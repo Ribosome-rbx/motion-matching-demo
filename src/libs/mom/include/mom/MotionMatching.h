@@ -5,6 +5,7 @@
 #include "crl-basic/gui/plots.h"
 #include "crl-basic/utils/trajectory.h"
 #include "mom/MotionDatabase.h"
+#include "mom/Controller.h"
 
 namespace crl::mocap {
 
@@ -115,9 +116,9 @@ public:
         speedProfilePlots_.addLineSpec({"forward", [](const auto &d) { return (float)d.x(); }});
         speedProfilePlots_.addLineSpec({"sideways", [](const auto &d) { return (float)d.y(); }});
         speedProfilePlots_.addLineSpec({"turning", [](const auto &d) { return (float)d.z(); }});
-        eeSpeedPlots_.addLineSpec({"fl", [](const auto &d) { return (float)d[0]; }});
+        // eeSpeedPlots_.addLineSpec({"fl", [](const auto &d) { return (float)d[0]; }});
         eeSpeedPlots_.addLineSpec({"hl", [](const auto &d) { return (float)d[1]; }});
-        eeSpeedPlots_.addLineSpec({"fr", [](const auto &d) { return (float)d[2]; }});
+        // eeSpeedPlots_.addLineSpec({"fr", [](const auto &d) { return (float)d[2]; }});
         eeSpeedPlots_.addLineSpec({"hr", [](const auto &d) { return (float)d[3]; }});
     }
 
@@ -320,52 +321,52 @@ public:
             drawArrow3d(characterPos + tt3, td3 * 0.15, 0.01, shader, V3D(0, 0, 0), 0.5);
 
             // foot position
-            V3D ft1(xq[12], xq[13], xq[14]);
-            ft1 = characterQ * ft1;
-            V3D ft2(xq[15], xq[16], xq[17]);
+            // V3D ft1(xq[12], xq[13], xq[14]);
+            // ft1 = characterQ * ft1;
+            V3D ft2(xq[12], xq[13], xq[14]);
             ft2 = characterQ * ft2;
-            V3D ft3(xq[18], xq[19], xq[20]);
-            ft3 = characterQ * ft3;
-            V3D ft4(xq[21], xq[22], xq[23]);
+            // V3D ft3(xq[18], xq[19], xq[20]);
+            // ft3 = characterQ * ft3;
+            V3D ft4(xq[15], xq[16], xq[17]);
             ft4 = characterQ * ft4;
 
             // foot velocity
-            V3D ft1dot(xq[24], xq[25], xq[26]);
-            ft1dot = characterQ * ft1dot;
-            V3D ft2dot(xq[27], xq[28], xq[29]);
+            // V3D ft1dot(xq[24], xq[25], xq[26]);
+            // ft1dot = characterQ * ft1dot;
+            V3D ft2dot(xq[18], xq[19], xq[20]);
             ft2dot = characterQ * ft2dot;
-            V3D ft3dot(xq[30], xq[31], xq[32]);
-            ft3dot = characterQ * ft3dot;
-            V3D ft4dot(xq[33], xq[34], xq[35]);
+            // V3D ft3dot(xq[30], xq[31], xq[32]);
+            // ft3dot = characterQ * ft3dot;
+            V3D ft4dot(xq[21], xq[22], xq[23]);
             ft4dot = characterQ * ft4dot;
 
             // contact
-            V3D f1color(1, 1, 0);
+            // V3D f1color(1, 1, 0);
             V3D f2color(1, 1, 0);
-            V3D f3color(1, 1, 0);
+            // V3D f3color(1, 1, 0);
             V3D f4color(1, 1, 0);
-            if (ft1.y() < feetHeightThreshold && ft1dot.norm() < feetSpeedThreshold)
-                f1color = V3D(0, 1, 1);
+            // if (ft1.y() < feetHeightThreshold && ft1dot.norm() < feetSpeedThreshold)
+            //     f1color = V3D(0, 1, 1);
             if (ft2.y() < feetHeightThreshold && ft2dot.norm() < feetSpeedThreshold)
                 f2color = V3D(0, 1, 1);
-            if (ft3.y() < feetHeightThreshold && ft3dot.norm() < feetSpeedThreshold)
-                f3color = V3D(0, 1, 1);
+            // if (ft3.y() < feetHeightThreshold && ft3dot.norm() < feetSpeedThreshold)
+            //     f3color = V3D(0, 1, 1);
             if (ft4.y() < feetHeightThreshold && ft4dot.norm() < feetSpeedThreshold)
                 f4color = V3D(0, 1, 1);
 
-            drawSphere(characterPos + ft1, 0.02, shader, f1color, 0.5);
+            // drawSphere(characterPos + ft1, 0.02, shader, f1color, 0.5);
             drawSphere(characterPos + ft2, 0.02, shader, f2color, 0.5);
-            drawSphere(characterPos + ft3, 0.02, shader, f3color, 0.5);
+            // drawSphere(characterPos + ft3, 0.02, shader, f3color, 0.5);
             drawSphere(characterPos + ft4, 0.02, shader, f4color, 0.5);
 
-            drawArrow3d(characterPos + ft1, ft1dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
+            // drawArrow3d(characterPos + ft1, ft1dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
             drawArrow3d(characterPos + ft2, ft2dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
-            drawArrow3d(characterPos + ft3, ft3dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
+            // drawArrow3d(characterPos + ft3, ft3dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
             drawArrow3d(characterPos + ft4, ft4dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
 
             // root velocity
             // let's just draw from character pos (for projecting to ground)
-            V3D htdot(xq[36], xq[37], xq[38]);
+            V3D htdot(xq[24], xq[25], xq[26]);
             htdot = characterQ * htdot;
             drawSphere(characterPos, 0.02, shader, V3D(1, 0, 1), 0.5);
             drawArrow3d(characterPos, htdot * 0.15, 0.01, shader, V3D(1, 0, 1), 0.5);

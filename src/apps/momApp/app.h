@@ -46,6 +46,7 @@ public:
 
     void drawObjectsWithoutShadows(const crl::gui::Shader &shader) override {
         mocapSkeleton->draw(shader);
+        motionMatching->drawDebugInfo(shader);
     }
 
     void drawImGui() override {
