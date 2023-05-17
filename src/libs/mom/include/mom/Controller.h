@@ -159,10 +159,12 @@ namespace crl::mocap {
             camera.target.z =  object.position[2];
         }
 
+        public:
+        bool KEY_W = false, KEY_A = false, KEY_S = false, KEY_D = false;
+
         private:
         V3D key_dir;
         GameObject object;
-        bool KEY_W = false, KEY_A = false, KEY_S = false, KEY_D = false;
 
         void manipulatefromWSAD(GLFWwindow *window)
         {

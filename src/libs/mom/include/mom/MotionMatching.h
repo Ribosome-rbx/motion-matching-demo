@@ -34,6 +34,12 @@ struct InertializationInfo {
  */
 class MotionMatching {
 public:
+    // keyboard control
+    bool KEY_W = false;
+    bool KEY_A = false;
+    bool KEY_S = false;
+    bool KEY_D = false;
+
     // commands
     double speedForward = 0;
     double speedSideways = 0;
@@ -180,8 +186,8 @@ public:
      * compute inertialization and update. here, old motion is current motion
      * sequence and new motion is the best match searched with a query vector.
      */
-    void matchMotion() {
-        dVector xq = createQueryVector();
+    void matchMotion(const crl::gui::TrackingCamera &camera) {
+        dVector xq = createQueryVector(camera);
         MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
 
         Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s)",  //
@@ -290,11 +296,11 @@ public:
         motionTime_ += dt_;
     }
 
-    void drawDebugInfo(const gui::Shader &shader) {
+    void drawDebugInfo(const gui::Shader &shader, const crl::gui::TrackingCamera &camera) {
         // draw query info
         {
             // future trajectory
-            dVector xq = createQueryVector();
+            dVector xq = createQueryVector(camera);
             P3D characterPos = P3D(skeleton_->root->state.pos.x, 0, skeleton_->root->state.pos.z);
             Quaternion characterQ =
                 computeCharacterQ(skeleton_->root->state.orientation, skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis));
@@ -662,7 +668,7 @@ private:
     /**
      * create query vector from current skeleton's state and user command.
      */
-    dVector createQueryVector() {
+    dVector createQueryVector(const crl::gui::TrackingCamera &camera) {
         Quaternion rootQ = skeleton_->root->state.orientation;
         P3D rootPos = skeleton_->root->state.pos;
 
@@ -675,6 +681,26 @@ private:
         Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
         P3D characterPos(rootPos.x, 0, rootPos.z);
         double characterYaw = yaw;
+
+        // camera facing direction
+        glm::vec3 orientation = camera.getOrientation();
+        V3D camera_dir(orientation.x, 0, orientation.z);
+
+        // set move direction based keyboard input
+        Eigen::Vector2d key_dir(0,0);
+        if (KEY_W) key_dir[0] += 1;
+        if (KEY_A) key_dir[1] -= 1;
+        if (KEY_S) key_dir[0] -= 1;
+        if (KEY_D) key_dir[1] += 1;
+        key_dir = key_dir.normalized();
+        Eigen::Matrix3d rot_matrix;
+        rot_matrix << key_dir[0], 0, -key_dir[1],
+                        0, 1, 0,
+                        key_dir[1], 0, key_dir[0];
+
+        V3D desired_dir = (rot_matrix * camera_dir.normalized()).normalized();
+        V3D forward_vel = (skeleton_->forwardAxis).normalized() * speedForward;
+        V3D desired_vel = desired_dir * 10.0f;
 
         // generate trajectory (of character)
         Trajectory3D queryPosTrajectory;
@@ -690,6 +716,9 @@ private:
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
+            float k = 1.0f;
+            float b = 1.0f;
+
             while (t <= 1.0) {
                 Quaternion headingQ = getRotationQuaternion(headingAngle, skeleton_->upAxis);
 
@@ -697,14 +726,28 @@ private:
                 queryHeadingTrajectory.addKnot(t, headingAngle);
                 querySpeedTrajectory.addKnot(t, V3D(vForward, vSideways, vTurning));
 
-                vForward = speedForward;
-                vSideways = speedSideways;
-                vTurning = turningSpeed;
+                V3D x = - desired_dir;
+                V3D v = forward_vel - desired_vel;
+                V3D force = (x * (-k)) + (v * (-b));
+                // Update velocity and position using Euler integration
+                V3D new_vel = forward_vel + (dtTraj * force);
+                pos = pos + (dtTraj * new_vel);
+                // pos = pos + dtTraj * (headingQ * new_vel);
+                
 
-                // update the position and heading of the body frame based on target
-                // speeds...
-                pos = pos + dtTraj * (headingQ * (skeleton_->forwardAxis * vForward + skeleton_->forwardAxis.cross(skeleton_->upAxis) * vSideways));
-                headingAngle += dtTraj * vTurning;
+                // decide clockwise or counter clockwise
+                int sign = ((forward_vel.cross(new_vel))[1] > 0) ? 1 : -1;
+                headingAngle += sign * acos((forward_vel.normalized()).dot(new_vel.normalized()));
+                forward_vel = new_vel;
+
+                // vForward = speedForward;
+                // vSideways = speedSideways;
+                // vTurning = turningSpeed;
+
+                // // update the position and heading of the body frame based on target
+                // // speeds...
+                // pos = pos + dtTraj * (headingQ * (skeleton_->forwardAxis * vForward + skeleton_->forwardAxis.cross(skeleton_->upAxis) * vSideways));
+                // headingAngle += dtTraj * vTurning;
 
                 t += dtTraj;
             }
