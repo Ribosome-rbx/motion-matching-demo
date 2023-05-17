@@ -710,7 +710,7 @@ private:
         }
 
         // build query vector
-        dVector xq(39);
+        dVector xq(27);
 
         // 1/2: 2D projected future trajectory
         // TODO: check if 20/40/60 * dt is correct
@@ -748,29 +748,29 @@ private:
         td3.normalize();
 
         // 3/4: feet positions and velocities w.r.t character frame (in R^12)
-        auto *flJoint = skeleton_->getMarkerByName("LeftHand");
-        auto *hlJoint = skeleton_->getMarkerByName("LeftFoot");
-        auto *frJoint = skeleton_->getMarkerByName("RightHand");
-        auto *hrJoint = skeleton_->getMarkerByName("RightFoot");
+        // auto *flJoint = skeleton_->getMarkerByName("LeftHand");
+        auto *hlJoint = skeleton_->getMarkerByName("LeftToe");
+        // auto *frJoint = skeleton_->getMarkerByName("RightHand");
+        auto *hrJoint = skeleton_->getMarkerByName("RightToe");
 
-        P3D flFeetPos = flJoint->state.getWorldCoordinates(flJoint->endSites[0].endSiteOffset);
+        // P3D flFeetPos = flJoint->state.getWorldCoordinates(flJoint->endSites[0].endSiteOffset);
         P3D hlFeetPos = hlJoint->state.getWorldCoordinates(hlJoint->endSites[0].endSiteOffset);
-        P3D frFeetPos = frJoint->state.getWorldCoordinates(frJoint->endSites[0].endSiteOffset);
+        // P3D frFeetPos = frJoint->state.getWorldCoordinates(frJoint->endSites[0].endSiteOffset);
         P3D hrFeetPos = hrJoint->state.getWorldCoordinates(hrJoint->endSites[0].endSiteOffset);
 
-        V3D ft1 = characterQ.inverse() * V3D(characterPos, flFeetPos);
+        // V3D ft1 = characterQ.inverse() * V3D(characterPos, flFeetPos);
         V3D ft2 = characterQ.inverse() * V3D(characterPos, hlFeetPos);
-        V3D ft3 = characterQ.inverse() * V3D(characterPos, frFeetPos);
+        // V3D ft3 = characterQ.inverse() * V3D(characterPos, frFeetPos);
         V3D ft4 = characterQ.inverse() * V3D(characterPos, hrFeetPos);
 
-        V3D ft1dot = flJoint->state.getVelocityForPoint_local(flJoint->endSites[0].endSiteOffset);
+        // V3D ft1dot = flJoint->state.getVelocityForPoint_local(flJoint->endSites[0].endSiteOffset);
         V3D ft2dot = hlJoint->state.getVelocityForPoint_local(hlJoint->endSites[0].endSiteOffset);
-        V3D ft3dot = frJoint->state.getVelocityForPoint_local(frJoint->endSites[0].endSiteOffset);
+        // V3D ft3dot = frJoint->state.getVelocityForPoint_local(frJoint->endSites[0].endSiteOffset);
         V3D ft4dot = hrJoint->state.getVelocityForPoint_local(hrJoint->endSites[0].endSiteOffset);
 
-        ft1dot = characterQ.inverse() * ft1dot;
+        // ft1dot = characterQ.inverse() * ft1dot;
         ft2dot = characterQ.inverse() * ft2dot;
-        ft3dot = characterQ.inverse() * ft3dot;
+        // ft3dot = characterQ.inverse() * ft3dot;
         ft4dot = characterQ.inverse() * ft4dot;
 
         // 5: hip (root) joint velocity w.r.t character frame (in R^3)
@@ -792,35 +792,35 @@ private:
         xq[10] = td3.x();
         xq[11] = td3.z();
 
-        xq[12] = ft1.x();
-        xq[13] = ft1.y();
-        xq[14] = ft1.z();
-        xq[15] = ft2.x();
-        xq[16] = ft2.y();
-        xq[17] = ft2.z();
-        xq[18] = ft3.x();
-        xq[19] = ft3.y();
-        xq[20] = ft3.z();
-        xq[21] = ft4.x();
-        xq[22] = ft4.y();
-        xq[23] = ft4.z();
+        // xq[12] = ft1.x();
+        // xq[13] = ft1.y();
+        // xq[14] = ft1.z();
+        xq[12] = ft2.x();
+        xq[13] = ft2.y();
+        xq[14] = ft2.z();
+        // xq[18] = ft3.x();
+        // xq[19] = ft3.y();
+        // xq[20] = ft3.z();
+        xq[15] = ft4.x();
+        xq[16] = ft4.y();
+        xq[17] = ft4.z();
 
-        xq[24] = ft1dot.x();
-        xq[25] = ft1dot.y();
-        xq[26] = ft1dot.z();
-        xq[27] = ft2dot.x();
-        xq[28] = ft2dot.y();
-        xq[29] = ft2dot.z();
-        xq[30] = ft3dot.x();
-        xq[31] = ft3dot.y();
-        xq[32] = ft3dot.z();
-        xq[33] = ft4dot.x();
-        xq[34] = ft4dot.y();
-        xq[35] = ft4dot.z();
+        // xq[24] = ft1dot.x();
+        // xq[25] = ft1dot.y();
+        // xq[26] = ft1dot.z();
+        xq[18] = ft2dot.x();
+        xq[19] = ft2dot.y();
+        xq[20] = ft2dot.z();
+        // xq[30] = ft3dot.x();
+        // xq[31] = ft3dot.y();
+        // xq[32] = ft3dot.z();
+        xq[21] = ft4dot.x();
+        xq[22] = ft4dot.y();
+        xq[23] = ft4dot.z();
 
-        xq[36] = htdot.x();
-        xq[37] = htdot.y();
-        xq[38] = htdot.z();
+        xq[24] = htdot.x();
+        xq[25] = htdot.y();
+        xq[26] = htdot.z();
 
         return xq;
     }

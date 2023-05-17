@@ -12,7 +12,7 @@ class App : public crl::gui::ShadowApplication {
 public:
     App() : crl::gui::ShadowApplication("MotionMatching App") {
         // load mann dataset
-        std::string mocapPath = dataPath_ + "D1_ex01_KAN01_001.bvh";
+        std::string mocapPath = dataPath_ + "walk1_subject5.bvh";
         mocapSkeleton = new crl::mocap::MocapSkeleton(mocapPath.c_str());
         motionDatabase = new crl::mocap::MotionDatabase(dataPath_);
         motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase);
@@ -103,7 +103,7 @@ public:
     }
 
 public:
-    std::string dataPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/mann/";
+    std::string dataPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_mini/";
     crl::mocap::MocapSkeleton *mocapSkeleton = nullptr;
     crl::mocap::MotionDatabase *motionDatabase = nullptr;
     crl::mocap::MotionMatching *motionMatching = nullptr;

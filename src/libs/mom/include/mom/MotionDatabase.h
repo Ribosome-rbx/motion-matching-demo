@@ -198,29 +198,29 @@ private:
                 td3.normalize();
 
                 // 3/4: feet positions and velocities w.r.t character frame (in R^12)
-                auto *flJoint = skeleton->getMarkerByName("LeftHand");
-                auto *hlJoint = skeleton->getMarkerByName("LeftFoot");
-                auto *frJoint = skeleton->getMarkerByName("RightHand");
-                auto *hrJoint = skeleton->getMarkerByName("RightFoot");
+                // auto *flJoint = skeleton->getMarkerByName("LeftHand");
+                auto *hlJoint = skeleton->getMarkerByName("LeftToe");
+                // auto *frJoint = skeleton->getMarkerByName("RightHand");
+                auto *hrJoint = skeleton->getMarkerByName("RightToe");
 
-                P3D flFeetPos = flJoint->state.getWorldCoordinates(flJoint->endSites[0].endSiteOffset);
+                // P3D flFeetPos = flJoint->state.getWorldCoordinates(flJoint->endSites[0].endSiteOffset);
                 P3D hlFeetPos = hlJoint->state.getWorldCoordinates(hlJoint->endSites[0].endSiteOffset);
-                P3D frFeetPos = frJoint->state.getWorldCoordinates(frJoint->endSites[0].endSiteOffset);
+                // P3D frFeetPos = frJoint->state.getWorldCoordinates(frJoint->endSites[0].endSiteOffset);
                 P3D hrFeetPos = hrJoint->state.getWorldCoordinates(hrJoint->endSites[0].endSiteOffset);
 
-                V3D ft1 = characterQ.inverse() * V3D(characterPos, flFeetPos);
+                // V3D ft1 = characterQ.inverse() * V3D(characterPos, flFeetPos);
                 V3D ft2 = characterQ.inverse() * V3D(characterPos, hlFeetPos);
-                V3D ft3 = characterQ.inverse() * V3D(characterPos, frFeetPos);
+                // V3D ft3 = characterQ.inverse() * V3D(characterPos, frFeetPos);
                 V3D ft4 = characterQ.inverse() * V3D(characterPos, hrFeetPos);
 
-                V3D ft1dot = flJoint->state.getVelocityForPoint_local(flJoint->endSites[0].endSiteOffset);
+                // V3D ft1dot = flJoint->state.getVelocityForPoint_local(flJoint->endSites[0].endSiteOffset);
                 V3D ft2dot = hlJoint->state.getVelocityForPoint_local(hlJoint->endSites[0].endSiteOffset);
-                V3D ft3dot = frJoint->state.getVelocityForPoint_local(frJoint->endSites[0].endSiteOffset);
+                // V3D ft3dot = frJoint->state.getVelocityForPoint_local(frJoint->endSites[0].endSiteOffset);
                 V3D ft4dot = hrJoint->state.getVelocityForPoint_local(hrJoint->endSites[0].endSiteOffset);
 
-                ft1dot = characterQ.inverse() * ft1dot;
+                // ft1dot = characterQ.inverse() * ft1dot;
                 ft2dot = characterQ.inverse() * ft2dot;
-                ft3dot = characterQ.inverse() * ft3dot;
+                // ft3dot = characterQ.inverse() * ft3dot;
                 ft4dot = characterQ.inverse() * ft4dot;
 
                 // 5: hip (root) joint velocity w.r.t character frame (in R^3)
@@ -242,35 +242,35 @@ private:
                 x[10] = td3.x();
                 x[11] = td3.z();
 
-                x[12] = ft1.x();
-                x[13] = ft1.y();
-                x[14] = ft1.z();
-                x[15] = ft2.x();
-                x[16] = ft2.y();
-                x[17] = ft2.z();
-                x[18] = ft3.x();
-                x[19] = ft3.y();
-                x[20] = ft3.z();
-                x[21] = ft4.x();
-                x[22] = ft4.y();
-                x[23] = ft4.z();
+                // x[12] = ft1.x();
+                // x[13] = ft1.y();
+                // x[14] = ft1.z();
+                x[12] = ft2.x();
+                x[13] = ft2.y();
+                x[14] = ft2.z();
+                // x[18] = ft3.x();
+                // x[19] = ft3.y();
+                // x[20] = ft3.z();
+                x[15] = ft4.x();
+                x[16] = ft4.y();
+                x[17] = ft4.z();
 
-                x[24] = ft1dot.x();
-                x[25] = ft1dot.y();
-                x[26] = ft1dot.z();
-                x[27] = ft2dot.x();
-                x[28] = ft2dot.y();
-                x[29] = ft2dot.z();
-                x[30] = ft3dot.x();
-                x[31] = ft3dot.y();
-                x[32] = ft3dot.z();
-                x[33] = ft4dot.x();
-                x[34] = ft4dot.y();
-                x[35] = ft4dot.z();
+                // x[24] = ft1dot.x();
+                // x[25] = ft1dot.y();
+                // x[26] = ft1dot.z();
+                x[18] = ft2dot.x();
+                x[19] = ft2dot.y();
+                x[20] = ft2dot.z();
+                // x[30] = ft3dot.x();
+                // x[31] = ft3dot.y();
+                // x[32] = ft3dot.z();
+                x[21] = ft4dot.x();
+                x[22] = ft4dot.y();
+                x[23] = ft4dot.z();
 
-                x[36] = htdot.x();
-                x[37] = htdot.y();
-                x[38] = htdot.z();
+                x[24] = htdot.x();
+                x[25] = htdot.y();
+                x[26] = htdot.z();
 
                 features_.emplace_back();
                 features_.back().x = x;
@@ -320,7 +320,7 @@ public:
 private:
     std::vector<std::unique_ptr<BVHClip>> clips_;
     std::vector<MocapFeature> features_;
-    const uint featureDim_ = 39;
+    const uint featureDim_ = 27;
 
     // mean and std of features
     dVector mu_, sigma_;
