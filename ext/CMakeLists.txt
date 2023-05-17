@@ -22,7 +22,7 @@ endmacro()
 # crl-basic
 FetchContent_Declare(
         motion-matching #
-        GIT_REPOSITORY https://github.com/Digital-Humans-23/motion-matching.git #
+        GIT_REPOSITORY https://github.com/guo-han/motion-matching.git # https://github.com/Digital-Humans-23/motion-matching.git #
         GIT_TAG main #
 )
 set(MOTION_MATCHING_BUILD_APPS OFF CACHE BOOL "Build crl-basic lib only")
