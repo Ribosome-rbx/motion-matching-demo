@@ -83,6 +83,30 @@ public:
         if (key == GLFW_KEY_RIGHT) {
             motionMatching->turningSpeed -= 0.3;
         }
+        if (key == GLFW_KEY_W) {
+            motionMatching->speedForward = 3.0;
+        }
+        if (key == GLFW_KEY_S) {
+            motionMatching->speedForward = -3.0;
+        }
+        if (key == GLFW_KEY_A) {
+            motionMatching->turningSpeed = 1.0;
+        }
+        if (key == GLFW_KEY_D) {
+            motionMatching->turningSpeed = -1.0;
+        }
+
+        return false;
+    }
+
+    virtual bool keyReleased(int key, int mods) override{
+        if (key == GLFW_KEY_W || key == GLFW_KEY_S) {
+            motionMatching->speedForward = 0.0;
+        }
+        if (key == GLFW_KEY_A || key == GLFW_KEY_D) {
+            motionMatching->turningSpeed = 0.0;
+        }
+
         return false;
     }
 
