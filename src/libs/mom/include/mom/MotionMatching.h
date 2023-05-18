@@ -5,7 +5,6 @@
 #include "crl-basic/gui/plots.h"
 #include "crl-basic/utils/trajectory.h"
 #include "mom/MotionDatabase.h"
-#include "mom/Controller.h"
 
 namespace crl::mocap {
 
@@ -190,10 +189,9 @@ public:
         dVector xq = createQueryVector(camera);
         MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
 
-        Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s)",  //
+        Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s) \n",  //
                              currMotionIdx_.first, currMotionIdx_.second - 1, database_->getClipByClipIndex(currMotionIdx_.first)->getName().c_str(),
                              bestMatch.first, bestMatch.second, database_->getClipByClipIndex(bestMatch.first)->getName().c_str());
-
         // here we need to match with previous frame!
         matchMotion({currMotionIdx_.first, currMotionIdx_.second - 1}, bestMatch);
     }
@@ -699,7 +697,7 @@ private:
                         key_dir[1], 0, key_dir[0];
 
         V3D desired_dir = (rot_matrix * camera_dir.normalized()).normalized();
-        V3D forward_vel = (skeleton_->forwardAxis).normalized() * speedForward;
+        V3D forward_vel = skeleton_->forwardAxis * speedForward;
         V3D desired_vel = desired_dir * 10.0f;
 
         // generate trajectory (of character)
@@ -737,9 +735,10 @@ private:
 
                 // decide clockwise or counter clockwise
                 int sign = ((forward_vel.cross(new_vel))[1] > 0) ? 1 : -1;
-                headingAngle += sign * acos((forward_vel.normalized()).dot(new_vel.normalized()));
+                double dotproduct = (forward_vel.normalized()).dot(new_vel.normalized());
+                dotproduct = std::min(1.0,std::max(dotproduct, -1.0));
+                headingAngle += sign * acos(dotproduct);
                 forward_vel = new_vel;
-
                 // vForward = speedForward;
                 // vSideways = speedSideways;
                 // vTurning = turningSpeed;

@@ -3,7 +3,7 @@
 #include <crl-basic/gui/application.h>
 #include <imgui_widgets/imfilebrowser.h>
 #include <crl-basic/utils/logger.h>
-#include "mom/Controller.h"
+
 
 #include "mom/MotionMatching.h"
 
@@ -152,7 +152,6 @@ public:
     crl::mocap::MocapSkeleton *mocapSkeleton = nullptr;
     crl::mocap::MotionDatabase *motionDatabase = nullptr;
     crl::mocap::MotionMatching *motionMatching = nullptr;
-    crl::mocap::Controller *controller = nullptr;
 private:
     bool NEW_INPUT = false;
 };

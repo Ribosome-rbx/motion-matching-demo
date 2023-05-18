@@ -52,7 +52,7 @@ public:
             dVector xNormalized = (f.x - mu_).array() / sigma_.array();
 
             double loss = (xNormalized - xqNormalized).norm();
-
+            
             if (loss < minLoss) {
                 minLoss = loss;
                 minIdx = {f.datasetIdx, f.motionIdx};
