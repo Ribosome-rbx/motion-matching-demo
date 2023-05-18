@@ -663,6 +663,35 @@ private:
         return newV_t + dv;
     }
 
+    // functions for spring damper system
+    double halflife_to_damping(double halflife, double eps = 1e-5f)
+    {
+        return (4.0f * 0.69314718056f) / (halflife + eps);
+    }
+    double fast_negexp(double x)
+    {
+        return 1.0f / (1.0f + x + 0.48f*x*x + 0.235f*x*x*x);
+    }
+    void spring_character_update(
+        double& x, // current position
+        double& v, // current velocity
+        double& a, // initial acceleration, die down while dt grows
+        double v_goal, // goal velocity
+        double halflife, // expected time to finish half converging (reach the mid-point between v and v_goal)
+        double dt)
+    {
+        double y = halflife_to_damping(halflife) / 2.0f;	
+        double j0 = v - v_goal;
+        double j1 = a + j0*y;
+        double eydt = fast_negexp(y*dt);
+
+        x = eydt*(((-j1)/(y*y)) + ((-j0 - j1*dt)/y)) + 
+            (j1/(y*y)) + j0/y + v_goal * dt + x;
+        v = eydt*(j0 + j1*dt) + v_goal;
+        a = eydt*(a - j1*y*dt);
+    }
+
+
     /**
      * create query vector from current skeleton's state and user command.
      */
@@ -696,9 +725,9 @@ private:
                         0, 1, 0,
                         key_dir[1], 0, key_dir[0];
 
-        V3D desired_dir = (rot_matrix * camera_dir.normalized()).normalized();
-        V3D forward_vel = skeleton_->forwardAxis * speedForward;
-        V3D desired_vel = desired_dir * 10.0f;
+        // in the world frame
+        V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
+        V3D goal_vel = goal_dir * 10.0f;
 
         // generate trajectory (of character)
         Trajectory3D queryPosTrajectory;
@@ -709,44 +738,34 @@ private:
             P3D pos = characterPos;
             double headingAngle = characterYaw;
             double vForward = this->speedForward;
-            double vSideways = this->speedSideways;
-            double vTurning = this->turningSpeed;
+
+            Quaternion headingQ = getRotationQuaternion(headingAngle, skeleton_->upAxis);
+            V3D prev_vel = (headingQ * skeleton_->forwardAxis * vForward).normalized();
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            float k = 1.0f;
-            float b = 1.0f;
+            double halflife = 0.5f;
 
             while (t <= 1.0) {
-                Quaternion headingQ = getRotationQuaternion(headingAngle, skeleton_->upAxis);
-
-                queryPosTrajectory.addKnot(t, V3D(pos));
-                queryHeadingTrajectory.addKnot(t, headingAngle);
-                querySpeedTrajectory.addKnot(t, V3D(vForward, vSideways, vTurning));
-
-                V3D x = - desired_dir;
-                V3D v = forward_vel - desired_vel;
-                V3D force = (x * (-k)) + (v * (-b));
-                // Update velocity and position using Euler integration
-                V3D new_vel = forward_vel + (dtTraj * force);
-                pos = pos + (dtTraj * new_vel);
-                // pos = pos + dtTraj * (headingQ * new_vel);
+                V3D curr_vel = headingQ * skeleton_->forwardAxis * vForward;
+                P3D curr_pos = pos;
+                P3D init_a = P3D(1.0, 1.0, 1.0);
                 
+                // compute traj infomation
+                spring_character_update(curr_pos[0], curr_vel[0], init_a[0], goal_vel[0], halflife, t);
+                spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
+                spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
 
                 // decide clockwise or counter clockwise
-                int sign = ((forward_vel.cross(new_vel))[1] > 0) ? 1 : -1;
-                double dotproduct = (forward_vel.normalized()).dot(new_vel.normalized());
+                int sign = ((prev_vel.cross(curr_vel))[1] > 0) ? 1 : -1;
+                double dotproduct = prev_vel.dot(curr_vel.normalized());
                 dotproduct = std::min(1.0,std::max(dotproduct, -1.0));
                 headingAngle += sign * acos(dotproduct);
-                forward_vel = new_vel;
-                // vForward = speedForward;
-                // vSideways = speedSideways;
-                // vTurning = turningSpeed;
+                prev_vel = curr_vel;
 
-                // // update the position and heading of the body frame based on target
-                // // speeds...
-                // pos = pos + dtTraj * (headingQ * (skeleton_->forwardAxis * vForward + skeleton_->forwardAxis.cross(skeleton_->upAxis) * vSideways));
-                // headingAngle += dtTraj * vTurning;
+                // store trajectory at time t
+                queryPosTrajectory.addKnot(t, V3D(curr_pos));
+                queryHeadingTrajectory.addKnot(t, headingAngle);
 
                 t += dtTraj;
             }
