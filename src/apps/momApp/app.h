@@ -27,7 +27,7 @@ public:
 
     void process() override {
         static uint frame = 0;
-        if (frame >= 30 || NEW_INPUT) {
+        if (frame >= 15 || NEW_INPUT) {
             crl::Logger::consolePrint("transition happens!");
             motionMatching->matchMotion(camera);
             frame = 0;
