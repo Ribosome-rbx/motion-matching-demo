@@ -36,6 +36,11 @@ public:
         motionMatching->advance();
         frame++;
 
+        crl::P3D pos_(mocapSkeleton->root->state.pos.x, 0, mocapSkeleton->root->state.pos.z);
+        crl::V3D vel_(crl::P3D(mocapSkeleton->root->state.velocity[0], 0, mocapSkeleton->root->state.velocity[2]));
+        motionMatching->historyPos.push_back(pos_);
+        motionMatching->historyVel.push_back(vel_.normalized());
+
         camera.target.x = mocapSkeleton->root->state.pos.x;
         camera.target.z = mocapSkeleton->root->state.pos.z;
         light.target.x() = mocapSkeleton->root->state.pos.x;
@@ -63,12 +68,14 @@ public:
             }
         }
 
-        int start = motionMatching->historyPos.size() >= 10? motionMatching->historyPos.size()-10 : 0;
+        int start = motionMatching->historyPos.size() >= 120? motionMatching->historyPos.size()-120 : 0;
         for (int i=start; i<motionMatching->historyPos.size(); i++){
             crl::P3D pos_i = motionMatching->historyPos[i];
-            crl::V3D vel_i = (motionMatching->historyVel[i]).normalized();
             drawSphere(pos_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
-            drawArrow3d(pos_i, vel_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
+            if(i % 20 == 19){
+                crl::V3D vel_i = (motionMatching->historyVel[i]).normalized();
+                drawArrow3d(pos_i, vel_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
+            }
         }
     }
 

@@ -749,12 +749,10 @@ private:
         {
             P3D pos = characterPos;
             V3D vel = characterVel;
-            historyPos.push_back(characterPos);
-            historyVel.push_back(characterVel);
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.5f;
+            double halflife = 0.1f;
 
             while (t <= 1.0) {
                 V3D curr_vel = vel; // V0 in the world frame
