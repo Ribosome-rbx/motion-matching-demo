@@ -69,6 +69,7 @@ public:
     std::vector<P3D> historyPos;
     std::vector<V3D> historyVel;
     std::vector<P3D> paintTraj;
+    int trajInd = 0;
 
     // if this is empty, we extract height and speed of root
     std::string referenceJointName = "";  // Spine1
@@ -771,61 +772,68 @@ private:
 
                 t += dtTraj;
             }
-            PosTraj = queryPosTrajectory;
-            VelTraj = queryVelTrajectory;
         }
         else{
+            // banned visualization
             cameraDir = V3D(P3D());
+            goalVel = V3D(P3D());
 
-            // set move direction based keyboard input
-            Eigen::Vector2d key_dir(0,0);
-            if (KEY_W) key_dir[0] += 1;
-            if (KEY_A) key_dir[1] -= 1;
-            if (KEY_S) key_dir[0] -= 1;
-            if (KEY_D) key_dir[1] += 1;
-            key_dir = key_dir.normalized();
-            Eigen::Matrix3d rot_matrix;
-            rot_matrix << key_dir[0], 0, -key_dir[1],
-                            0, 1, 0,
-                            key_dir[1], 0, key_dir[0];
-
-            // in the world frame
-            V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
-            V3D goal_vel = goal_dir * this->speedForward;
-            goalVel = goal_vel;
-
-            P3D pos = characterPos;
-            V3D vel = characterVel;
+            // init nearest trajInd
+            if (trajInd != 0){
+                double dist = INFINITY;
+                for (int i=0; i<paintTraj.size(); i++){
+                    V3D d = V3D(paintTraj[i], characterPos);
+                    if(d.norm() < dist){
+                        dist = d.norm();
+                        trajInd = i;
+                    }
+                }
+            }
+            
+            P3D curr_pos = characterPos; // x0
+            double const_vel = this->speedForward;
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.1f;
 
             while (t <= 1.0) {
-                V3D curr_vel = vel; // V0 in the world frame
-                P3D curr_pos = pos; // X0 in the world frame
-                V3D init_a = goal_vel - curr_vel; // initial acceleration in the world frame
+                V3D curr_vel;
+                double target_dist = dtTraj * const_vel;
+
+                while (true)
+                {
+                    P3D target_pos = paintTraj[trajInd];
+                    V3D target_dir = V3D(curr_pos, target_pos);
+                    if(target_dir.norm() > target_dist){
+                        target_dist = 0;
+                        curr_vel = target_dir.normalized() * const_vel; 
+                        curr_pos = curr_pos + curr_vel.normalized() * dtTraj * const_vel;
+                        break;
+                    } 
+                    else{
+                        target_dist -= target_dir.norm();
+                        curr_pos = target_pos;
+                        trajInd ++;
+                    }
+
+                    if (trajInd >= paintTraj.size())
+                        trajInd = 0;
+                }
                 
-                // compute traj infomation
-                spring_character_update(curr_pos[0], curr_vel[0], init_a[0], goal_vel[0], halflife, t);
-                spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
-                spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
-
-
                 // store trajectory at time t
                 queryPosTrajectory.addKnot(t, V3D(curr_pos));
                 queryVelTrajectory.addKnot(t, curr_vel);
 
                 t += dtTraj;
             }
-            PosTraj = queryPosTrajectory;
-            VelTraj = queryVelTrajectory;
         }
+        PosTraj = queryPosTrajectory;
+        VelTraj = queryVelTrajectory;
 
         // build query vector
         dVector xq(27);
 
-        double stop_threshold = 0.5;
+        double stop_threshold = 0.;
         // 1/2: 2D projected future trajectory
         // TODO: check if 20/40/60 * dt is correct
         // after 20 frames
