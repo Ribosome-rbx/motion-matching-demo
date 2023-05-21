@@ -25,6 +25,28 @@ struct MocapFeature {
     uint datasetIdx = -1;
 };
 
+
+static Matrix3x3 calc_facing_rotm(Quaternion &rootQ) {
+    Matrix3x3 rotm = rootQ.normalized().toRotationMatrix();
+    Vector3d up{0, 1, 0};
+
+    Vector3d facing = -(rotm.col(1) - rotm.col(1).dot(up) * up).normalized();
+    Vector3d side = facing.cross(up);
+
+    Matrix3x3 new_rotm;
+    new_rotm << facing, up, side;
+    return new_rotm;
+}
+
+inline Quaternion calc_facing_quat(Quaternion &rootQ) {
+    return Quaternion(calc_facing_rotm(rootQ));
+}
+
+inline double calc_facing_yaw(Quaternion &rootQ) {
+    Matrix3x3 rotm = calc_facing_rotm(rootQ);
+    return std::atan2(rotm(2,0), rotm(0,0));
+}
+
 /**
  * we build motion database X.
  */
@@ -138,8 +160,10 @@ private:
             auto &c = clips_[i];
             auto *skeleton = c->getModel();
             // frame
-            const V3D worldUp = skeleton->upAxis;
-            const V3D worldForward = skeleton->forwardAxis;
+            // const V3D worldUp = skeleton->upAxis;
+            // const V3D worldForward = skeleton->forwardAxis;
+            const V3D worldForward(0,1,0);
+
 
             // becareful! we save 61 frames into one feature.
             for (uint j = 0; j < c->getFrameCount() - 60; j++) {
@@ -155,12 +179,13 @@ private:
                 P3D rootPos = m.getRootPosition();
 
                 // becareful! skeleton's forward direction is x axis not z axis!
-                double roll, pitch, yaw;
-                computeEulerAnglesFromQuaternion(rootQ,  //
-                                                 worldForward, worldForward.cross(worldUp), worldUp, roll, pitch, yaw);
+                // double roll, pitch, yaw;
+                // computeEulerAnglesFromQuaternion(rootQ,  //
+                //                                  worldForward, worldForward.cross(worldUp), worldUp, roll, pitch, yaw);
 
                 // current character frame
-                Quaternion characterQ = getRotationQuaternion(yaw, worldUp);
+                // Quaternion characterQ = getRotationQuaternion(yaw, worldUp);
+                Quaternion characterQ = calc_facing_quat(rootQ);
                 P3D characterPos(rootPos.x, 0, rootPos.z);
 
                 // 1/2: 2D projected future trajectory and heading
@@ -178,7 +203,7 @@ private:
                 // after 40 frames
                 P3D rootPosAfter40 = c->getState(j + 40).getRootPosition();
                 V3D tt2(characterPos, rootPosAfter40);
-                tt2 = characterQ.inverse() * tt1;
+                tt2 = characterQ.inverse() * tt2;
 
                 Quaternion rootQAfter40 = c->getState(j + 40).getRootOrientation();
                 V3D td2 = rootQAfter40 * worldForward;
@@ -204,9 +229,9 @@ private:
                 auto *hrJoint = skeleton->getMarkerByName("RightFoot");
 
                 // P3D flFeetPos = flJoint->state.getWorldCoordinates(flJoint->endSites[0].endSiteOffset);
-                P3D hlFeetPos = hlJoint->state.pos;
+                P3D hlFeetPos = hlJoint->state.getWorldCoordinates(P3D());
                 // P3D frFeetPos = frJoint->state.getWorldCoordinates(frJoint->endSites[0].endSiteOffset);
-                P3D hrFeetPos = hrJoint->state.pos;
+                P3D hrFeetPos = hrJoint->state.getWorldCoordinates(P3D());
 
                 // V3D ft1 = characterQ.inverse() * V3D(characterPos, flFeetPos);
                 V3D ft2 = characterQ.inverse() * V3D(characterPos, hlFeetPos);
@@ -214,9 +239,9 @@ private:
                 V3D ft4 = characterQ.inverse() * V3D(characterPos, hrFeetPos);
 
                 // V3D ft1dot = flJoint->state.getVelocityForPoint_local(flJoint->endSites[0].endSiteOffset);
-                V3D ft2dot = hlJoint->state.velocity;
+                V3D ft2dot = hlJoint->state.getVelocityForPoint_local(P3D());
                 // V3D ft3dot = frJoint->state.getVelocityForPoint_local(frJoint->endSites[0].endSiteOffset);
-                V3D ft4dot = hrJoint->state.velocity;
+                V3D ft4dot = hrJoint->state.getVelocityForPoint_local(P3D());
 
                 // ft1dot = characterQ.inverse() * ft1dot;
                 ft2dot = characterQ.inverse() * ft2dot;
