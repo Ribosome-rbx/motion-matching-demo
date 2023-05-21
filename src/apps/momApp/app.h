@@ -13,7 +13,7 @@ class App : public crl::gui::ShadowApplication {
 public:
     App() : crl::gui::ShadowApplication("MotionMatching App") {
         // load mann dataset
-        std::string mocapPath = dataPath_ + "walk1_subject5.bvh";
+        std::string mocapPath = dataPath_ + "walk1_subject1.bvh";
         mocapSkeleton = new crl::mocap::MocapSkeleton(mocapPath.c_str());
         motionDatabase = new crl::mocap::MotionDatabase(dataPath_);
         motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase);
@@ -27,7 +27,7 @@ public:
 
     void process() override {
         static uint frame = 0;
-        if (frame >= 30 || NEW_INPUT) {
+        if (frame >= 20 || NEW_INPUT) {
             crl::Logger::consolePrint("transition happens!");
             motionMatching->matchMotion(camera);
             frame = 0;
@@ -53,30 +53,33 @@ public:
 
     void drawObjectsWithoutShadows(const crl::gui::Shader &shader) override {
         mocapSkeleton->draw(shader);
-        // motionMatching->drawDebugInfo(shader, camera);
+        motionMatching->drawDebugInfo(shader, camera);
 
-        // customized draw
-        drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->goalVel.normalized(), 0.02, shader, crl::V3D(1, 0.55, 0), 0.5);
-        drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->cameraDir.normalized(), 0.02, shader, crl::V3D(0, 0.55, 1), 0.5);
+        // for (int i=0; i<hitPoints.size(); i++)
+        //     crl::gui::drawSphere(hitPoints[i], 0.05, shader, crl::V3D(1, 0, 0), 0.5);
 
-        for (int i=0; i<motionMatching->PosTraj.getKnotCount(); i++){
-            crl::P3D pos_i = crl::P3D() + motionMatching->PosTraj.evaluate_linear(i / 60.0);
-            drawSphere(pos_i, 0.02, shader, crl::V3D(1, 0, 0.2), 0.5);
-            if (i > 0){
-                crl::V3D vel_i = motionMatching->VelTraj.evaluate_linear(i / 60.0);
-                drawArrow3d(pos_i, vel_i.normalized(), 0.02, shader, crl::V3D(1, 0, 1), 0.5);
-            }
-        }
+        // // customized draw
+        // drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->goalVel.normalized(), 0.02, shader, crl::V3D(1, 0.55, 0), 0.5);
+        // drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->cameraDir.normalized(), 0.02, shader, crl::V3D(0, 0.55, 1), 0.5);
 
-        int start = motionMatching->historyPos.size() >= 120? motionMatching->historyPos.size()-120 : 0;
-        for (int i=start; i<motionMatching->historyPos.size(); i++){
-            crl::P3D pos_i = motionMatching->historyPos[i];
-            drawSphere(pos_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
-            if(i % 20 == 19){
-                crl::V3D vel_i = (motionMatching->historyVel[i]).normalized();
-                drawArrow3d(pos_i, vel_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
-            }
-        }
+        // for (int i=0; i<motionMatching->PosTraj.getKnotCount(); i++){
+        //     crl::P3D pos_i = crl::P3D() + motionMatching->PosTraj.evaluate_linear(i / 60.0);
+        //     drawSphere(pos_i, 0.02, shader, crl::V3D(1, 0, 0.2), 0.5);
+        //     if (i > 0){
+        //         crl::V3D vel_i = motionMatching->VelTraj.evaluate_linear(i / 60.0);
+        //         drawArrow3d(pos_i, vel_i.normalized(), 0.02, shader, crl::V3D(1, 0, 1), 0.5);
+        //     }
+        // }
+
+        // int start = motionMatching->historyPos.size() >= 120? motionMatching->historyPos.size()-120 : 0;
+        // for (int i=start; i<motionMatching->historyPos.size(); i++){
+        //     crl::P3D pos_i = motionMatching->historyPos[i];
+        //     drawSphere(pos_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
+        //     if(i % 20 == 19){
+        //         crl::V3D vel_i = (motionMatching->historyVel[i]).normalized();
+        //         drawArrow3d(pos_i, vel_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
+        //     }
+        // }
     }
 
     void drawImGui() override {
@@ -86,6 +89,10 @@ public:
         if (ImGui::CollapsingHeader("Motion Control options", ImGuiTreeNodeFlags_DefaultOpen)) {
             ImGui::InputDouble("Speed forward", &motionMatching->speedForward, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
             ImGui::InputDouble("Speed turning", &motionMatching->turningSpeed, 0.0f, 0.0f, "%.3f", ImGuiInputTextFlags_ReadOnly);
+            ImGui::Checkbox("Paint trajectory", &drawTrajMode);
+            if (ImGui::Button("Clear Painting")) {
+                hitPoints.clear();
+            }
         }
         ImGui::End();
     }
@@ -159,11 +166,16 @@ public:
     }
 
     bool mouseMove(double xpos, double ypos) override {
-        if (mouseState.dragging == false) {
+        if (drawTrajMode && mouseState.dragging) {
             crl::P3D rayOrigin;
             crl::V3D rayDirection;
             camera.getRayFromScreenCoordinates(xpos, ypos, rayOrigin, rayDirection);
+
+            crl::P3D hit = crl::P3D(rayOrigin[0] - rayOrigin[1]/rayDirection[1] * rayDirection[0], 0, rayOrigin[2] - rayOrigin[1]/rayDirection[1] * rayDirection[2]);
+            hitPoints.push_back(hit);
+            return true;
         }
+
         return crl::gui::ShadowApplication::mouseMove(xpos, ypos);
     }
 
@@ -180,8 +192,10 @@ public:
     crl::mocap::MocapSkeleton *mocapSkeleton = nullptr;
     crl::mocap::MotionDatabase *motionDatabase = nullptr;
     crl::mocap::MotionMatching *motionMatching = nullptr;
+    std::vector<crl::P3D> hitPoints;
 private:
     bool NEW_INPUT = false;
+    bool drawTrajMode = false;
 };
 
 }  // namespace momApp

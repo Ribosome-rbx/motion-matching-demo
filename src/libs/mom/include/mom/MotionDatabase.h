@@ -199,14 +199,14 @@ private:
 
                 // 3/4: feet positions and velocities w.r.t character frame (in R^12)
                 // auto *flJoint = skeleton->getMarkerByName("LeftHand");
-                auto *hlJoint = skeleton->getMarkerByName("LeftToe");
+                auto *hlJoint = skeleton->getMarkerByName("LeftFoot");
                 // auto *frJoint = skeleton->getMarkerByName("RightHand");
-                auto *hrJoint = skeleton->getMarkerByName("RightToe");
+                auto *hrJoint = skeleton->getMarkerByName("RightFoot");
 
                 // P3D flFeetPos = flJoint->state.getWorldCoordinates(flJoint->endSites[0].endSiteOffset);
-                P3D hlFeetPos = hlJoint->state.getWorldCoordinates(hlJoint->endSites[0].endSiteOffset);
+                P3D hlFeetPos = hlJoint->state.pos;
                 // P3D frFeetPos = frJoint->state.getWorldCoordinates(frJoint->endSites[0].endSiteOffset);
-                P3D hrFeetPos = hrJoint->state.getWorldCoordinates(hrJoint->endSites[0].endSiteOffset);
+                P3D hrFeetPos = hrJoint->state.pos;
 
                 // V3D ft1 = characterQ.inverse() * V3D(characterPos, flFeetPos);
                 V3D ft2 = characterQ.inverse() * V3D(characterPos, hlFeetPos);
@@ -214,9 +214,9 @@ private:
                 V3D ft4 = characterQ.inverse() * V3D(characterPos, hrFeetPos);
 
                 // V3D ft1dot = flJoint->state.getVelocityForPoint_local(flJoint->endSites[0].endSiteOffset);
-                V3D ft2dot = hlJoint->state.getVelocityForPoint_local(hlJoint->endSites[0].endSiteOffset);
+                V3D ft2dot = hlJoint->state.velocity;
                 // V3D ft3dot = frJoint->state.getVelocityForPoint_local(frJoint->endSites[0].endSiteOffset);
-                V3D ft4dot = hrJoint->state.getVelocityForPoint_local(hrJoint->endSites[0].endSiteOffset);
+                V3D ft4dot = hrJoint->state.velocity;
 
                 // ft1dot = characterQ.inverse() * ft1dot;
                 ft2dot = characterQ.inverse() * ft2dot;

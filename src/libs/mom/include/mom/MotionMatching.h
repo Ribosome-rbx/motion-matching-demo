@@ -144,7 +144,7 @@ public:
     /**
      * reset motion (restart from the origin)
      */
-    void resetMotion(std::string initDataset = "D1_ex01_KAN01_001.bvh", uint initFrame = 0) {
+    void resetMotion(std::string initDataset = "walk1_subject1.bvh", uint initFrame = 0) {
         t_wc = P3D(0, 0, 0);
         Q_wc = Quaternion::Identity();
 
@@ -738,7 +738,7 @@ private:
 
         // in the world frame
         V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
-        V3D goal_vel = goal_dir * 10.0f;
+        V3D goal_vel = goal_dir * this->speedForward;
         goalVel = goal_vel;
 
         // generate trajectory (of character)
@@ -790,6 +790,7 @@ private:
         // V3D td1 = characterQAfter20 * skeleton_->forwardAxis;
         // td1 = characterQ.inverse() * td1;
         V3D td1 = queryVelTrajectory.evaluate_linear(20.0 * dt_);
+        td1 = characterQ.inverse() * td1;
         td1.y() = 0;
         if (td1.norm() < stop_threshold){ // set to be same as previous point
             tt1 = V3D(characterPos, characterPos);
@@ -806,6 +807,7 @@ private:
         // V3D td2 = characterQAfter40 * skeleton_->forwardAxis;
         // td2 = characterQ.inverse() * td2;
         V3D td2 = queryVelTrajectory.evaluate_linear(40.0 * dt_);
+        td2 = characterQ.inverse() * td2;
         td2.y() = 0;
         if (td2.norm() < stop_threshold){ // set to be same as previous point
             tt2 = tt1;
@@ -822,6 +824,7 @@ private:
         // V3D td3 = characterQAfter60 * skeleton_->forwardAxis;
         // td3 = characterQ.inverse() * td3;
         V3D td3 = queryVelTrajectory.evaluate_linear(60.0 * dt_);
+        td3 = characterQ.inverse() * td3;
         td3.y() = 0;
         if (td3.norm() < stop_threshold){ // set to be same as previous point
             tt3 = tt2;
