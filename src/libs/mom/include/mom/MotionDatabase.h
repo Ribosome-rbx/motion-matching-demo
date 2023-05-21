@@ -73,7 +73,20 @@ public:
         for (const auto &f : features_) {
             dVector xNormalized = (f.x - mu_).array() / sigma_.array();
 
-            double loss = (xNormalized - xqNormalized).norm();
+            dVector loss_vec = xNormalized - xqNormalized;
+            dVector traj_loss_vec(12), feature_loss_vec(15);
+            for (size_t i = 0; i < 12; i++)
+            {
+                traj_loss_vec[i] = loss_vec[i];
+            }
+            for (size_t i = 12; i < 27; i++)
+            {
+                feature_loss_vec[i-12] = loss_vec[i];
+            }
+            double traj_loss = traj_loss_vec.norm(), feature_loss = feature_loss_vec.norm();
+            double loss = 0.75*traj_loss + 0.25*feature_loss;
+            // double loss = weighted_loss_vec.norm();
+            // double loss = (xNormalized - xqNormalized).norm();
             
             if (loss < minLoss) {
                 minLoss = loss;
