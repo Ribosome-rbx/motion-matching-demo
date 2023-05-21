@@ -805,9 +805,9 @@ private:
                     P3D target_pos = paintTraj[trajInd];
                     V3D target_dir = V3D(curr_pos, target_pos);
                     if(target_dir.norm() > target_dist){
-                        target_dist = 0;
                         curr_vel = target_dir.normalized() * const_vel; 
-                        curr_pos = curr_pos + curr_vel.normalized() * dtTraj * const_vel;
+                        curr_pos = curr_pos + curr_vel.normalized() * target_dist;
+                        target_dist = 0;
                         break;
                     } 
                     else{
