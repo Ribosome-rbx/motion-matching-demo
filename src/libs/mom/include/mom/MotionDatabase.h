@@ -194,8 +194,9 @@ private:
                 V3D tt1(characterPos, rootPosAfter20);
                 tt1 = characterQ.inverse() * tt1;
 
-                Quaternion rootQAfter20 = c->getState(j + 20).getRootOrientation();
-                V3D td1 = rootQAfter20 * worldForward;
+                // Quaternion rootQAfter20 = c->getState(j + 20).getRootOrientation();
+                // V3D td1 = rootQAfter20 * worldForward;
+                V3D td1 = c->getState(j + 20).getRootVelocity();
                 td1 = characterQ.inverse() * td1;
                 td1.y() = 0;
                 td1.normalize();
@@ -205,8 +206,9 @@ private:
                 V3D tt2(characterPos, rootPosAfter40);
                 tt2 = characterQ.inverse() * tt2;
 
-                Quaternion rootQAfter40 = c->getState(j + 40).getRootOrientation();
-                V3D td2 = rootQAfter40 * worldForward;
+                // Quaternion rootQAfter40 = c->getState(j + 40).getRootOrientation();
+                // V3D td2 = rootQAfter40 * worldForward;
+                V3D td2 = c->getState(j + 40).getRootVelocity();
                 td2 = characterQ.inverse() * td2;
                 td2.y() = 0;
                 td2.normalize();
@@ -216,8 +218,9 @@ private:
                 V3D tt3(characterPos, rootPosAfter60);
                 tt3 = characterQ.inverse() * tt3;
 
-                Quaternion rootQAfter60 = c->getState(j + 60).getRootOrientation();
-                V3D td3 = rootQAfter60 * worldForward;
+                // Quaternion rootQAfter60 = c->getState(j + 60).getRootOrientation();
+                // V3D td3 = rootQAfter60 * worldForward;
+                V3D td3 = c->getState(j + 60).getRootVelocity();
                 td3 = characterQ.inverse() * td3;
                 td3.y() = 0;
                 td3.normalize();
