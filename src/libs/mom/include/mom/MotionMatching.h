@@ -214,19 +214,19 @@ public:
 
         // update Q_wc and t_wc
         t_wc = P3D(skeleton_->root->state.pos.x, 0, skeleton_->root->state.pos.z);
-        Q_wc = computeCharacterQ(skeleton_->root->state.orientation, skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis));
+        Q_wc = calc_facing_quat(skeleton_->root->state.orientation);
 
         // update Q_wt0 and t_wt0
         MocapSkeletonState newMotion = database_->getMotionByMotionIndex(newMotionIdx);
         Q_wt0 = newMotion.getRootOrientation();
         t_wt0 = newMotion.getRootPosition();
 
-        // update Q_wt0prime and t_wt0prime
-        double roll, pitch, yaw;
-        computeEulerAnglesFromQuaternion(Q_wt0,  //
-                                         skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis), skeleton_->upAxis, roll, pitch, yaw);
-
-        Q_wt0prime = Q_wc * getRotationQuaternion(pitch, skeleton_->forwardAxis.cross(skeleton_->upAxis)) * getRotationQuaternion(roll, skeleton_->forwardAxis);
+        // // update Q_wt0prime and t_wt0prime
+        // // double roll, pitch, yaw;
+        // // computeEulerAnglesFromQuaternion(Q_wt0,  //
+        // //                                  skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis), skeleton_->upAxis, roll, pitch, yaw);
+        Q_wt0prime =  Q_wc * calc_facing_quat(Q_wt0).inverse() * Q_wt0;
+        // Q_wt0prime = Q_wc * getRotationQuaternion(pitch, skeleton_->forwardAxis.cross(skeleton_->upAxis)) * getRotationQuaternion(roll, skeleton_->forwardAxis);
         t_wt0prime = t_wc + V3D(0, t_wt0.y, 0);
 
         // compute inertialization
@@ -283,7 +283,7 @@ public:
         // plot
         {
             Quaternion characterQ =
-                computeCharacterQ(skeleton_->root->state.orientation, skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis));
+                calc_facing_quat(skeleton_->root->state.orientation);
 
             V3D characterVel = skeleton_->root->state.velocity;
             characterVel = characterQ.inverse() * characterVel;
@@ -308,9 +308,7 @@ public:
             // future trajectory
             dVector xq = createQueryVector(camera);
             P3D characterPos = P3D(skeleton_->root->state.pos.x, 0, skeleton_->root->state.pos.z);
-            Quaternion characterQ =
-                computeCharacterQ(skeleton_->root->state.orientation, skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis));
-
+            Quaternion characterQ = calc_facing_quat(skeleton_->root->state.orientation);
             V3D tt1(xq[0], 0, xq[1]);
             tt1 = characterQ * tt1;
             V3D tt2(xq[2], 0, xq[3]);
@@ -401,7 +399,7 @@ public:
 
                 // heading
                 Quaternion q = motionAfter_i.getRootOrientation();
-                q = computeCharacterQ(q, skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis));
+                q = calc_facing_quat(q);
 
                 V3D heading = q * skeleton_->forwardAxis;
                 heading.y() = 0;
@@ -709,15 +707,16 @@ private:
         V3D rootVel = skeleton_->root->state.velocity;
 
         // becareful! skeleton's forward direction is x axis not z axis!
-        double roll, pitch, yaw;
-        computeEulerAnglesFromQuaternion(rootQ,  //
-                                         skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis), skeleton_->upAxis, roll, pitch, yaw);
+        // double roll, pitch, yaw;
+        // computeEulerAnglesFromQuaternion(rootQ,  //
+        //                                  skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis), skeleton_->upAxis, roll, pitch, yaw);
 
         // current character frame
-        Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
+        // Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
+        Quaternion characterQ = calc_facing_quat(rootQ);
         P3D characterPos(rootPos.x, 0, rootPos.z);
         V3D characterVel(P3D(rootVel[0], 0, rootVel[2]));
-        double characterYaw = yaw;
+        double characterYaw = calc_facing_yaw(rootQ);
 
         // camera facing direction
         glm::vec3 orientation = camera.getOrientation();
@@ -901,16 +900,16 @@ private:
         return xq;
     }
 
-
-    Quaternion computeCharacterQ(Quaternion &rootQ, V3D xAxis, V3D zAxis) {
-        double roll, pitch, yaw;
-        computeEulerAnglesFromQuaternion(rootQ,  //
-                                         xAxis, zAxis, zAxis.cross(xAxis), roll, pitch, yaw);
-        return getRotationQuaternion(yaw, zAxis.cross(xAxis));
-    }
+    // Quaternion computeCharacterQ(Quaternion &rootQ, V3D xAxis, V3D zAxis) {
+    //     double roll, pitch, yaw;
+    //     computeEulerAnglesFromQuaternion(rootQ,  //
+    //                                      xAxis, zAxis, zAxis.cross(xAxis), roll, pitch, yaw);
+    //     return getRotationQuaternion(yaw, zAxis.cross(xAxis));
+    // }
 
     /**
      * motion stitched to current skeleton pose
+     * @note input is the raw state from the animation database
      */
     MocapSkeletonState computeStitchedMotion(const MocapSkeletonState &state) {
         MocapSkeletonState stitchedMotion = state;
