@@ -53,33 +53,33 @@ public:
 
     void drawObjectsWithoutShadows(const crl::gui::Shader &shader) override {
         mocapSkeleton->draw(shader);
-        motionMatching->drawDebugInfo(shader, camera);
+        // motionMatching->drawDebugInfo(shader, camera);
 
-        // for (int i=0; i<hitPoints.size(); i++)
-        //     crl::gui::drawSphere(hitPoints[i], 0.05, shader, crl::V3D(1, 0, 0), 0.5);
+        for (int i=0; i<hitPoints.size(); i++)
+            crl::gui::drawSphere(hitPoints[i], 0.05, shader, crl::V3D(1, 0, 0), 0.5);
 
-        // // customized draw
-        // drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->goalVel.normalized(), 0.02, shader, crl::V3D(1, 0.55, 0), 0.5);
-        // drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->cameraDir.normalized(), 0.02, shader, crl::V3D(0, 0.55, 1), 0.5);
+        // customized draw
+        drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->goalVel.normalized(), 0.02, shader, crl::V3D(1, 0.55, 0), 0.5);
+        drawArrow3d(mocapSkeleton->root->state.pos, motionMatching->cameraDir.normalized(), 0.02, shader, crl::V3D(0, 0.55, 1), 0.5);
 
-        // for (int i=0; i<motionMatching->PosTraj.getKnotCount(); i++){
-        //     crl::P3D pos_i = crl::P3D() + motionMatching->PosTraj.evaluate_linear(i / 60.0);
-        //     drawSphere(pos_i, 0.02, shader, crl::V3D(1, 0, 0.2), 0.5);
-        //     if (i > 0){
-        //         crl::V3D vel_i = motionMatching->VelTraj.evaluate_linear(i / 60.0);
-        //         drawArrow3d(pos_i, vel_i.normalized(), 0.02, shader, crl::V3D(1, 0, 1), 0.5);
-        //     }
-        // }
+        for (int i=0; i<motionMatching->PosTraj.getKnotCount(); i++){
+            crl::P3D pos_i = crl::P3D() + motionMatching->PosTraj.evaluate_linear(i / 60.0);
+            drawSphere(pos_i, 0.02, shader, crl::V3D(1, 0, 0.2), 0.5);
+            if (i > 0){
+                crl::V3D vel_i = motionMatching->VelTraj.evaluate_linear(i / 60.0);
+                drawArrow3d(pos_i, vel_i.normalized(), 0.02, shader, crl::V3D(1, 0, 1), 0.5);
+            }
+        }
 
-        // int start = motionMatching->historyPos.size() >= 120? motionMatching->historyPos.size()-120 : 0;
-        // for (int i=start; i<motionMatching->historyPos.size(); i++){
-        //     crl::P3D pos_i = motionMatching->historyPos[i];
-        //     drawSphere(pos_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
-        //     if(i % 20 == 19){
-        //         crl::V3D vel_i = (motionMatching->historyVel[i]).normalized();
-        //         drawArrow3d(pos_i, vel_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
-        //     }
-        // }
+        int start = motionMatching->historyPos.size() >= 120? motionMatching->historyPos.size()-120 : 0;
+        for (int i=start; i<motionMatching->historyPos.size(); i++){
+            crl::P3D pos_i = motionMatching->historyPos[i];
+            drawSphere(pos_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
+            if(i % 20 == 19){
+                crl::V3D vel_i = (motionMatching->historyVel[i]).normalized();
+                drawArrow3d(pos_i, vel_i, 0.02, shader, crl::V3D(0, 0, 1), 0.5);
+            }
+        }
     }
 
     void drawImGui() override {
