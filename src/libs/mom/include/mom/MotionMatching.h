@@ -68,6 +68,7 @@ public:
     Trajectory3D VelTraj;
     std::vector<P3D> historyPos;
     std::vector<V3D> historyVel;
+    std::vector<P3D> paintTraj;
 
     // if this is empty, we extract height and speed of root
     std::string referenceJointName = "";  // Spine1
@@ -718,34 +719,81 @@ private:
         V3D characterVel(P3D(rootVel[0], 0, rootVel[2]));
         double characterYaw = calc_facing_yaw(rootQ);
 
-        // camera facing direction
-        glm::vec3 orientation = camera.getOrientation();
-        V3D camera_dir(orientation.x, 0, orientation.z);
-        cameraDir = camera_dir;
-
-        // set move direction based keyboard input
-        Eigen::Vector2d key_dir(0,0);
-        if (KEY_W) key_dir[0] += 1;
-        if (KEY_A) key_dir[1] -= 1;
-        if (KEY_S) key_dir[0] -= 1;
-        if (KEY_D) key_dir[1] += 1;
-        key_dir = key_dir.normalized();
-        Eigen::Matrix3d rot_matrix;
-        rot_matrix << key_dir[0], 0, -key_dir[1],
-                        0, 1, 0,
-                        key_dir[1], 0, key_dir[0];
-
-        // in the world frame
-        V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
-        V3D goal_vel = goal_dir * this->speedForward;
-        goalVel = goal_vel;
-
         // generate trajectory (of character)
         Trajectory3D queryPosTrajectory;
         // Trajectory1D queryHeadingTrajectory;
         Trajectory3D queryVelTrajectory;
+        
+        if (paintTraj.size() == 0) {
+            // camera facing direction
+            glm::vec3 orientation = camera.getOrientation();
+            V3D camera_dir(orientation.x, 0, orientation.z);
+            cameraDir = camera_dir;
 
-        {
+            // set move direction based keyboard input
+            Eigen::Vector2d key_dir(0,0);
+            if (KEY_W) key_dir[0] += 1;
+            if (KEY_A) key_dir[1] -= 1;
+            if (KEY_S) key_dir[0] -= 1;
+            if (KEY_D) key_dir[1] += 1;
+            key_dir = key_dir.normalized();
+            Eigen::Matrix3d rot_matrix;
+            rot_matrix << key_dir[0], 0, -key_dir[1],
+                            0, 1, 0,
+                            key_dir[1], 0, key_dir[0];
+
+            // in the world frame
+            V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
+            V3D goal_vel = goal_dir * this->speedForward;
+            goalVel = goal_vel;
+
+            P3D pos = characterPos;
+            V3D vel = characterVel;
+
+            double dtTraj = 1.0 / 60;  // trajectory dt
+            double t = 0;
+            double halflife = 0.1f;
+
+            while (t <= 1.0) {
+                V3D curr_vel = vel; // V0 in the world frame
+                P3D curr_pos = pos; // X0 in the world frame
+                V3D init_a = goal_vel - curr_vel; // initial acceleration in the world frame
+                
+                // compute traj infomation
+                spring_character_update(curr_pos[0], curr_vel[0], init_a[0], goal_vel[0], halflife, t);
+                spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
+                spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
+
+
+                // store trajectory at time t
+                queryPosTrajectory.addKnot(t, V3D(curr_pos));
+                queryVelTrajectory.addKnot(t, curr_vel);
+
+                t += dtTraj;
+            }
+            PosTraj = queryPosTrajectory;
+            VelTraj = queryVelTrajectory;
+        }
+        else{
+            cameraDir = V3D(P3D());
+
+            // set move direction based keyboard input
+            Eigen::Vector2d key_dir(0,0);
+            if (KEY_W) key_dir[0] += 1;
+            if (KEY_A) key_dir[1] -= 1;
+            if (KEY_S) key_dir[0] -= 1;
+            if (KEY_D) key_dir[1] += 1;
+            key_dir = key_dir.normalized();
+            Eigen::Matrix3d rot_matrix;
+            rot_matrix << key_dir[0], 0, -key_dir[1],
+                            0, 1, 0,
+                            key_dir[1], 0, key_dir[0];
+
+            // in the world frame
+            V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
+            V3D goal_vel = goal_dir * this->speedForward;
+            goalVel = goal_vel;
+
             P3D pos = characterPos;
             V3D vel = characterVel;
 

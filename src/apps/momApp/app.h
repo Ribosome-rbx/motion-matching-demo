@@ -26,6 +26,7 @@ public:
     }
 
     void process() override {
+        motionMatching->paintTraj = hitPoints;
         static uint frame = 0;
         if (frame >= 20 || NEW_INPUT) {
             crl::Logger::consolePrint("transition happens!");
