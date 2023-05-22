@@ -1012,16 +1012,16 @@ private:
             cameraDir = camera_dir;
 
             V3D goal_vel = characterVel;
-            goal_vel.y() -= 3.0; // minus jump init velocity
+            goal_vel.y() -= 2.0; // minus jump init velocity
             goalVel = goal_vel;
 
             P3D pos = characterPos;
             V3D vel = characterVel;
-            vel.y() += 3.0; // add jump init velocity
+            vel.y() += 2.0; // add jump init velocity
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.5f;
+            double halflife = 0.3f;
 
             while (t <= 1.0) {
                 V3D curr_vel = vel; // V0 in the world frame

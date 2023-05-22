@@ -29,7 +29,9 @@ public:
     void process() override {
         motionMatching->paintTraj = hitPoints;
         static uint frame = 0;
-        if (frame >= 30 || NEW_INPUT ) {
+        int max_frame = 30;
+        if (motionMatching->KEY_J) max_frame += 20;
+        if (frame >= max_frame || NEW_INPUT ) {
             crl::Logger::consolePrint("transition happens!");
             motionMatching->matchMotion(camera);
             frame = 0;
@@ -174,7 +176,7 @@ public:
         if (key == GLFW_KEY_J) {
             // if (motionMatching->KEY_J) NEW_INPUT = true;
             motionMatching->KEY_J = false;
-            // motionMatching->switchDatabase();
+            motionMatching->switchDatabase();
         }
 
         return false;
