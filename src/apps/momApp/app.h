@@ -29,19 +29,12 @@ public:
     void process() override {
         motionMatching->paintTraj = hitPoints;
         static uint frame = 0;
-        // check if is jumping
-        crl::P3D leftFoot = mocapSkeleton->getMarkerByName("LeftFoot")->state.pos;
-        crl::P3D rightFoot = mocapSkeleton->getMarkerByName("RightFoot")->state.pos;
-        bool is_jumping = (leftFoot.y > 0.1 && rightFoot.y > 0.1);
-
-        if (!is_jumping){
-            if (frame >= 30 || NEW_INPUT ) {
-                crl::Logger::consolePrint("transition happens!");
-                motionMatching->matchMotion(camera);
-                frame = 0;
-                NEW_INPUT = false;
-                motionMatching->switchDatabase();
-            }
+        if (frame >= 30 || NEW_INPUT ) {
+            crl::Logger::consolePrint("transition happens!");
+            motionMatching->matchMotion(camera);
+            frame = 0;
+            NEW_INPUT = false;
+            motionMatching->switchDatabase();
         }
 
         motionMatching->advance();

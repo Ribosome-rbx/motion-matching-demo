@@ -997,7 +997,7 @@ private:
         // Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
         Quaternion characterQ = calc_facing_quat(rootQ);
         P3D characterPos = rootPos;
-        V3D characterVel = rootVel;
+        V3D characterVel(P3D(rootVel[0], 0, rootVel[2]));
         double characterYaw = calc_facing_yaw(rootQ);
 
         // generate trajectory (of character)
@@ -1011,31 +1011,17 @@ private:
             V3D camera_dir(orientation.x, 0, orientation.z);
             cameraDir = camera_dir;
 
-            // set move direction based keyboard input
-            Eigen::Vector2d key_dir(0,0);
-            if (KEY_W) key_dir[0] += 1;
-            if (KEY_A) key_dir[1] -= 1;
-            if (KEY_S) key_dir[0] -= 1;
-            if (KEY_D) key_dir[1] += 1;
-            key_dir = key_dir.normalized();
-            Eigen::Matrix3d rot_matrix;
-            rot_matrix << key_dir[0], 0, -key_dir[1],
-                            0, 1, 0,
-                            key_dir[1], 0, key_dir[0];
-
-            // in the world frame
-            V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
-            V3D goal_vel = goal_dir * this->speedForward;
-            goal_vel.y() -= 5.0; // minus jump init velocity
+            V3D goal_vel = characterVel;
+            goal_vel.y() -= 3.0; // minus jump init velocity
             goalVel = goal_vel;
 
             P3D pos = characterPos;
             V3D vel = characterVel;
-            vel.y() += 5.0; // add jump init velocity
+            vel.y() += 3.0; // add jump init velocity
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.3f;
+            double halflife = 0.5f;
 
             while (t <= 1.0) {
                 V3D curr_vel = vel; // V0 in the world frame
