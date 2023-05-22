@@ -78,6 +78,7 @@ public:
 private:
     MocapSkeleton *skeleton_ = nullptr;
     MotionDatabase *database_ = nullptr;
+    MotionDatabase *oldDatabase_ = nullptr;
     MotionDatabase *jumpDatabase_ = nullptr;
     MotionDatabase *walkDatabase_ = nullptr;
 
@@ -124,6 +125,7 @@ public:
         this->walkDatabase_ = walkDatabase;
         this->jumpDatabase_ = jumpDatabase;
         this->database_ = this->walkDatabase_;
+        this->oldDatabase_ = this->walkDatabase_;
         jointInertializationInfos_.resize(skeleton->getMarkerCount());
 
         // set initial motion
@@ -197,8 +199,15 @@ public:
     }
 
     void switchDatabase(){
-        if (KEY_J) this->database_ = this->jumpDatabase_;
-        else this->database_ = this->walkDatabase_;
+        if (KEY_J){
+            this->oldDatabase_ = this->database_;
+            this->database_ = this->jumpDatabase_;
+            std::cout << (oldDatabase_ == database_) << std::endl;
+        }
+        else{
+            this->oldDatabase_ = this->database_;
+            this->database_ = this->walkDatabase_;
+        } 
     }
 
     /**
@@ -224,8 +233,8 @@ public:
      */
     void matchMotion(MotionIndex oldMotionIdx, MotionIndex newMotionIdx) {
         // old motion stitched
-        MocapSkeletonState oldMotionMinus1 = computeStitchedMotion(database_->getMotionByMotionIndex({oldMotionIdx.first, oldMotionIdx.second - 1}));
-        MocapSkeletonState oldMotion = computeStitchedMotion(database_->getMotionByMotionIndex(oldMotionIdx));
+        MocapSkeletonState oldMotionMinus1 = computeStitchedMotion(oldDatabase_->getMotionByMotionIndex({oldMotionIdx.first, oldMotionIdx.second - 1}));
+        MocapSkeletonState oldMotion = computeStitchedMotion(oldDatabase_->getMotionByMotionIndex(oldMotionIdx));
 
         // update Q_wc and t_wc
         t_wc = P3D(skeleton_->root->state.pos.x, 0, skeleton_->root->state.pos.z);
