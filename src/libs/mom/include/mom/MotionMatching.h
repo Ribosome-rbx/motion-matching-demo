@@ -222,7 +222,7 @@ public:
         MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
 
         Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s) \n",  //
-                             currMotionIdx_.first, currMotionIdx_.second - 1, database_->getClipByClipIndex(currMotionIdx_.first)->getName().c_str(),
+                             currMotionIdx_.first, currMotionIdx_.second - 1, oldDatabase_->getClipByClipIndex(currMotionIdx_.first)->getName().c_str(),
                              bestMatch.first, bestMatch.second, database_->getClipByClipIndex(bestMatch.first)->getName().c_str());
         // here we need to match with previous frame!
         matchMotion({currMotionIdx_.first, currMotionIdx_.second - 1}, bestMatch);
