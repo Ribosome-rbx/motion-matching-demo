@@ -38,6 +38,7 @@ public:
     bool KEY_A = false;
     bool KEY_S = false;
     bool KEY_D = false;
+    bool KEY_J = false;
 
     // commands
     double speedForward = 0;
@@ -196,7 +197,15 @@ public:
      * sequence and new motion is the best match searched with a query vector.
      */
     void matchMotion(const crl::gui::TrackingCamera &camera) {
-        dVector xq = createQueryVector(camera);
+        dVector xq;
+        if(KEY_J) {
+            xq = createQueryVector3d(camera);
+            KEY_J= false;
+        }
+        else {
+            xq = createQueryVector(camera);
+        }
+        
         MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
 
         Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s) \n",  //
@@ -699,7 +708,6 @@ private:
         a = eydt*(a - j1*y*dt);
     }
 
-
     /**
      * create query vector from current skeleton's state and user command.
      */
@@ -716,8 +724,8 @@ private:
         // current character frame
         // Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
         Quaternion characterQ = calc_facing_quat(rootQ);
-        P3D characterPos(rootPos.x, rootPos.y, rootPos.z);
-        V3D characterVel(P3D(rootVel[0], rootVel[1], rootVel[2]));
+        P3D characterPos(rootPos.x, 0, rootPos.z);
+        V3D characterVel(P3D(rootVel[0], 0, rootVel[2]));
         double characterYaw = calc_facing_yaw(rootQ);
 
         // generate trajectory (of character)
@@ -827,6 +835,212 @@ private:
                 t += dtTraj;
             }
         }
+        PosTraj = queryPosTrajectory;
+        VelTraj = queryVelTrajectory;
+
+        // build query vector
+        dVector xq(27);
+
+        double stop_threshold = 0.;
+        // 1/2: 2D projected future trajectory
+        // TODO: check if 20/40/60 * dt is correct
+        // after 20 frames
+        P3D characterPosAfter20 = P3D() + queryPosTrajectory.evaluate_linear(20 * dt_);
+        V3D tt1(characterPos, characterPosAfter20);
+        tt1 = characterQ.inverse() * tt1;
+
+        // Quaternion characterQAfter20 = getRotationQuaternion(queryHeadingTrajectory.evaluate_linear(20 * dt_), skeleton_->upAxis);
+        // V3D td1 = characterQAfter20 * skeleton_->forwardAxis;
+        // td1 = characterQ.inverse() * td1;
+        V3D td1 = queryVelTrajectory.evaluate_linear(20.0 * dt_);
+        td1 = characterQ.inverse() * td1;
+        td1.y() = 0;
+        if (td1.norm() < stop_threshold){ // set to be same as previous point
+            tt1 = V3D(characterPos, characterPos);
+            td1 = V3D(P3D());
+        } 
+        else td1.normalize();
+
+        // after 40 frames
+        P3D characterPosAfter40 = P3D() + queryPosTrajectory.evaluate_linear(40.0 * dt_);
+        V3D tt2(characterPos, characterPosAfter40);
+        tt2 = characterQ.inverse() * tt2;
+
+        // Quaternion characterQAfter40 = getRotationQuaternion(queryHeadingTrajectory.evaluate_linear(40 * dt_), skeleton_->upAxis);
+        // V3D td2 = characterQAfter40 * skeleton_->forwardAxis;
+        // td2 = characterQ.inverse() * td2;
+        V3D td2 = queryVelTrajectory.evaluate_linear(40.0 * dt_);
+        td2 = characterQ.inverse() * td2;
+        td2.y() = 0;
+        if (td2.norm() < stop_threshold){ // set to be same as previous point
+            tt2 = tt1;
+            td2 = V3D(P3D());
+        } 
+        else td2.normalize();
+
+        // after 60 frames
+        P3D characterPosAfter60 = P3D() + queryPosTrajectory.evaluate_linear(60 * dt_);
+        V3D tt3(characterPos, characterPosAfter60);
+        tt3 = characterQ.inverse() * tt3;
+
+        // Quaternion characterQAfter60 = getRotationQuaternion(queryHeadingTrajectory.evaluate_linear(60 * dt_), skeleton_->upAxis);
+        // V3D td3 = characterQAfter60 * skeleton_->forwardAxis;
+        // td3 = characterQ.inverse() * td3;
+        V3D td3 = queryVelTrajectory.evaluate_linear(60.0 * dt_);
+        td3 = characterQ.inverse() * td3;
+        td3.y() = 0;
+        if (td3.norm() < stop_threshold){ // set to be same as previous point
+            tt3 = tt2;
+            td3 = V3D(P3D());
+        } 
+        else td3.normalize();
+
+        // 3/4: feet positions and velocities w.r.t character frame (in R^12)
+        auto *hlJoint = skeleton_->getMarkerByName("LeftFoot");
+        auto *hrJoint = skeleton_->getMarkerByName("RightFoot");
+
+        // get world position of two feet
+        P3D hlFeetPos = hlJoint->state.pos;
+        P3D hrFeetPos = hrJoint->state.pos;
+
+        // vector between hip and feet, transfer from world to local frame
+        V3D ft2 = characterQ.inverse() * V3D(characterPos, hlFeetPos);
+        V3D ft4 = characterQ.inverse() * V3D(characterPos, hrFeetPos);
+
+        // get world velocity of two feet
+        V3D ft2dot = hlJoint->state.velocity;
+        V3D ft4dot = hrJoint->state.velocity;
+
+        // transfer velocity from world to local frame
+        ft2dot = characterQ.inverse() * ft2dot;
+        ft4dot = characterQ.inverse() * ft4dot;
+
+        // 5: hip (root) joint velocity w.r.t character frame (in R^3)
+        V3D htdot = skeleton_->root->state.velocity;
+        htdot = characterQ.inverse() * htdot;
+
+        // save to feature vector
+        xq[0] = tt1.x();
+        xq[1] = tt1.z();
+        xq[2] = tt2.x();
+        xq[3] = tt2.z();
+        xq[4] = tt3.x();
+        xq[5] = tt3.z();
+
+        xq[6] = td1.x();
+        xq[7] = td1.z();
+        xq[8] = td2.x();
+        xq[9] = td2.z();
+        xq[10] = td3.x();
+        xq[11] = td3.z();
+
+        // xq[12] = ft1.x();
+        // xq[13] = ft1.y();
+        // xq[14] = ft1.z();
+        xq[12] = ft2.x();
+        xq[13] = ft2.y();
+        xq[14] = ft2.z();
+        // xq[18] = ft3.x();
+        // xq[19] = ft3.y();
+        // xq[20] = ft3.z();
+        xq[15] = ft4.x();
+        xq[16] = ft4.y();
+        xq[17] = ft4.z();
+
+        // xq[24] = ft1dot.x();
+        // xq[25] = ft1dot.y();
+        // xq[26] = ft1dot.z();
+        xq[18] = ft2dot.x();
+        xq[19] = ft2dot.y();
+        xq[20] = ft2dot.z();
+        // xq[30] = ft3dot.x();
+        // xq[31] = ft3dot.y();
+        // xq[32] = ft3dot.z();
+        xq[21] = ft4dot.x();
+        xq[22] = ft4dot.y();
+        xq[23] = ft4dot.z();
+
+        xq[24] = htdot.x();
+        xq[25] = htdot.y();
+        xq[26] = htdot.z();
+
+        return xq;
+    }
+
+    /**
+     * create query vector from current skeleton's state and user command.
+     */
+    dVector createQueryVector3d(const crl::gui::TrackingCamera &camera) {
+        Quaternion rootQ = skeleton_->root->state.orientation;
+        P3D rootPos = skeleton_->root->state.pos;
+        V3D rootVel = skeleton_->root->state.velocity;
+
+        // becareful! skeleton's forward direction is x axis not z axis!
+        // double roll, pitch, yaw;
+        // computeEulerAnglesFromQuaternion(rootQ,  //
+        //                                  skeleton_->forwardAxis, skeleton_->forwardAxis.cross(skeleton_->upAxis), skeleton_->upAxis, roll, pitch, yaw);
+
+        // current character frame
+        // Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
+        Quaternion characterQ = calc_facing_quat(rootQ);
+        P3D characterPos = rootPos;
+        V3D characterVel = rootVel;
+        double characterYaw = calc_facing_yaw(rootQ);
+
+        // generate trajectory (of character)
+        Trajectory3D queryPosTrajectory;
+        // Trajectory1D queryHeadingTrajectory;
+        Trajectory3D queryVelTrajectory;
+        
+        {
+            // camera facing direction
+            glm::vec3 orientation = camera.getOrientation();
+            V3D camera_dir(orientation.x, 0, orientation.z);
+            cameraDir = camera_dir;
+
+            // set move direction based keyboard input
+            Eigen::Vector2d key_dir(0,0);
+            if (KEY_W) key_dir[0] += 1;
+            if (KEY_A) key_dir[1] -= 1;
+            if (KEY_S) key_dir[0] -= 1;
+            if (KEY_D) key_dir[1] += 1;
+            key_dir = key_dir.normalized();
+            Eigen::Matrix3d rot_matrix;
+            rot_matrix << key_dir[0], 0, -key_dir[1],
+                            0, 1, 0,
+                            key_dir[1], 0, key_dir[0];
+
+            // in the world frame
+            V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
+            V3D goal_vel = goal_dir * this->speedForward;
+            goalVel = goal_vel;
+
+            P3D pos = characterPos;
+            V3D vel = characterVel;
+
+            double dtTraj = 1.0 / 60;  // trajectory dt
+            double t = 0;
+            double halflife = 0.1f;
+
+            while (t <= 1.0) {
+                V3D curr_vel = vel; // V0 in the world frame
+                P3D curr_pos = pos; // X0 in the world frame
+                V3D init_a = goal_vel - curr_vel; // initial acceleration in the world frame
+                
+                // compute traj infomation
+                spring_character_update(curr_pos[0], curr_vel[0], init_a[0], goal_vel[0], halflife, t);
+                spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
+                spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
+
+
+                // store trajectory at time t
+                queryPosTrajectory.addKnot(t, V3D(curr_pos));
+                queryVelTrajectory.addKnot(t, curr_vel);
+
+                t += dtTraj;
+            }
+        }
+
         PosTraj = queryPosTrajectory;
         VelTraj = queryVelTrajectory;
 

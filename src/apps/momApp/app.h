@@ -141,6 +141,11 @@ public:
             if (!motionMatching->KEY_D) NEW_INPUT = true;
             motionMatching->KEY_D = true;
         }
+        if (key == GLFW_KEY_J) {
+            // motionMatching->turningSpeed = -1.0;
+            if (!motionMatching->KEY_J) NEW_INPUT = true;
+            motionMatching->KEY_J = true;
+        }
 
         return false;
     }
