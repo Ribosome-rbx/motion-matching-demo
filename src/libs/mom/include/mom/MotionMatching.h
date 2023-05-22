@@ -716,8 +716,8 @@ private:
         // current character frame
         // Quaternion characterQ = getRotationQuaternion(yaw, skeleton_->upAxis);
         Quaternion characterQ = calc_facing_quat(rootQ);
-        P3D characterPos(rootPos.x, 0, rootPos.z);
-        V3D characterVel(P3D(rootVel[0], 0, rootVel[2]));
+        P3D characterPos(rootPos.x, rootPos.y, rootPos.z);
+        V3D characterVel(P3D(rootVel[0], rootVel[1], rootVel[2]));
         double characterYaw = calc_facing_yaw(rootQ);
 
         // generate trajectory (of character)
@@ -831,7 +831,7 @@ private:
         VelTraj = queryVelTrajectory;
 
         // build query vector
-        dVector xq(27);
+        dVector xq(33);
 
         double stop_threshold = 0.;
         // 1/2: 2D projected future trajectory
@@ -846,7 +846,7 @@ private:
         // td1 = characterQ.inverse() * td1;
         V3D td1 = queryVelTrajectory.evaluate_linear(20.0 * dt_);
         td1 = characterQ.inverse() * td1;
-        td1.y() = 0;
+        // td1.y() = 0;
         if (td1.norm() < stop_threshold){ // set to be same as previous point
             tt1 = V3D(characterPos, characterPos);
             td1 = V3D(P3D());
@@ -863,7 +863,7 @@ private:
         // td2 = characterQ.inverse() * td2;
         V3D td2 = queryVelTrajectory.evaluate_linear(40.0 * dt_);
         td2 = characterQ.inverse() * td2;
-        td2.y() = 0;
+        // td2.y() = 0;
         if (td2.norm() < stop_threshold){ // set to be same as previous point
             tt2 = tt1;
             td2 = V3D(P3D());
@@ -880,7 +880,7 @@ private:
         // td3 = characterQ.inverse() * td3;
         V3D td3 = queryVelTrajectory.evaluate_linear(60.0 * dt_);
         td3 = characterQ.inverse() * td3;
-        td3.y() = 0;
+        // td3.y() = 0;
         if (td3.norm() < stop_threshold){ // set to be same as previous point
             tt3 = tt2;
             td3 = V3D(P3D());
@@ -913,48 +913,54 @@ private:
 
         // save to feature vector
         xq[0] = tt1.x();
-        xq[1] = tt1.z();
-        xq[2] = tt2.x();
-        xq[3] = tt2.z();
-        xq[4] = tt3.x();
-        xq[5] = tt3.z();
+        xq[1] = tt1.y();
+        xq[2] = tt1.z();
+        xq[3] = tt2.x();
+        xq[4] = tt2.y();
+        xq[5] = tt2.z();
+        xq[6] = tt3.x();
+        xq[7] = tt3.y();
+        xq[8] = tt3.z();
 
-        xq[6] = td1.x();
-        xq[7] = td1.z();
-        xq[8] = td2.x();
-        xq[9] = td2.z();
-        xq[10] = td3.x();
-        xq[11] = td3.z();
+        xq[9] = td1.x();
+        xq[10] = td1.y();
+        xq[11] = td1.z();
+        xq[12] = td2.x();
+        xq[13] = td2.y();
+        xq[14] = td2.z();
+        xq[15] = td3.x();
+        xq[16] = td3.y();
+        xq[17] = td3.z();
 
         // xq[12] = ft1.x();
         // xq[13] = ft1.y();
         // xq[14] = ft1.z();
-        xq[12] = ft2.x();
-        xq[13] = ft2.y();
-        xq[14] = ft2.z();
+        xq[18] = ft2.x();
+        xq[19] = ft2.y();
+        xq[20] = ft2.z();
         // xq[18] = ft3.x();
         // xq[19] = ft3.y();
         // xq[20] = ft3.z();
-        xq[15] = ft4.x();
-        xq[16] = ft4.y();
-        xq[17] = ft4.z();
+        xq[21] = ft4.x();
+        xq[22] = ft4.y();
+        xq[23] = ft4.z();
 
         // xq[24] = ft1dot.x();
         // xq[25] = ft1dot.y();
         // xq[26] = ft1dot.z();
-        xq[18] = ft2dot.x();
-        xq[19] = ft2dot.y();
-        xq[20] = ft2dot.z();
+        xq[24] = ft2dot.x();
+        xq[25] = ft2dot.y();
+        xq[26] = ft2dot.z();
         // xq[30] = ft3dot.x();
         // xq[31] = ft3dot.y();
         // xq[32] = ft3dot.z();
-        xq[21] = ft4dot.x();
-        xq[22] = ft4dot.y();
-        xq[23] = ft4dot.z();
+        xq[27] = ft4dot.x();
+        xq[28] = ft4dot.y();
+        xq[29] = ft4dot.z();
 
-        xq[24] = htdot.x();
-        xq[25] = htdot.y();
-        xq[26] = htdot.z();
+        xq[30] = htdot.x();
+        xq[31] = htdot.y();
+        xq[32] = htdot.z();
 
         return xq;
     }
