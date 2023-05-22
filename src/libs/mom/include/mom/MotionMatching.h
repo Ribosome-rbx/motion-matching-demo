@@ -1026,14 +1026,16 @@ private:
             // in the world frame
             V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
             V3D goal_vel = goal_dir * this->speedForward;
+            goal_vel.y() -= 5.0; // minus jump init velocity
             goalVel = goal_vel;
 
             P3D pos = characterPos;
             V3D vel = characterVel;
+            vel.y() += 5.0; // add jump init velocity
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.1f;
+            double halflife = 0.3f;
 
             while (t <= 1.0) {
                 V3D curr_vel = vel; // V0 in the world frame
@@ -1045,7 +1047,7 @@ private:
                 spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
                 spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
 
-
+                curr_pos.y = curr_pos.y > 0? curr_pos.y : 0;
                 // store trajectory at time t
                 queryPosTrajectory.addKnot(t, V3D(curr_pos));
                 queryVelTrajectory.addKnot(t, curr_vel);

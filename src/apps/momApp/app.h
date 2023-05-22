@@ -29,13 +29,21 @@ public:
     void process() override {
         motionMatching->paintTraj = hitPoints;
         static uint frame = 0;
-        if (frame >= 20 || NEW_INPUT) {
-            crl::Logger::consolePrint("transition happens!");
-            motionMatching->matchMotion(camera);
-            frame = 0;
-            NEW_INPUT = false;
-            motionMatching->switchDatabase();
+        // check if is jumping
+        crl::P3D leftFoot = mocapSkeleton->getMarkerByName("LeftFoot")->state.pos;
+        crl::P3D rightFoot = mocapSkeleton->getMarkerByName("RightFoot")->state.pos;
+        bool is_jumping = (leftFoot.y > 0.1 && rightFoot.y > 0.1);
+
+        if (!is_jumping){
+            if (frame >= 30 || NEW_INPUT ) {
+                crl::Logger::consolePrint("transition happens!");
+                motionMatching->matchMotion(camera);
+                frame = 0;
+                NEW_INPUT = false;
+                motionMatching->switchDatabase();
+            }
         }
+
         motionMatching->advance();
         frame++;
 
@@ -171,9 +179,9 @@ public:
             motionMatching->KEY_D = false;
         }
         if (key == GLFW_KEY_J) {
-            if (motionMatching->KEY_J) NEW_INPUT = true;
+            // if (motionMatching->KEY_J) NEW_INPUT = true;
             motionMatching->KEY_J = false;
-            motionMatching->switchDatabase();
+            // motionMatching->switchDatabase();
         }
 
         return false;
