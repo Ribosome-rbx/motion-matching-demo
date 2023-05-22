@@ -16,7 +16,7 @@ public:
         std::string mocapPath = dataPath_ + "walk1_subject1.bvh";
         mocapSkeleton = new crl::mocap::MocapSkeleton(mocapPath.c_str());
         motionDatabase = new crl::mocap::MotionDatabase(dataPath_, false);
-        motionJumpDatabase = new crl::mocap::MotionDatabase(dataJumpPath_, true);
+        motionJumpDatabase = new crl::mocap::MotionDatabase(dataJumpPath_, false);
         motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase, motionJumpDatabase);
         motionMatching->queueSize = 60;
     }
@@ -32,14 +32,15 @@ public:
         // check if is jumping
         crl::P3D leftFoot = mocapSkeleton->getMarkerByName("LeftFoot")->state.pos;
         crl::P3D rightFoot = mocapSkeleton->getMarkerByName("RightFoot")->state.pos;
-        bool is_jumping = (leftFoot.y > 0.1 && rightFoot.y > 0.1);
-
-        if (!is_jumping){
-            if (frame >= 30 || NEW_INPUT ) {
+        // bool is_jumping = (leftFoot.y > 0.1 && rightFoot.y > 0.1);
+        if (!motionMatching->isCartoonOn_){
+        // if (!is_jumping){
+            if (frame >= 30 || NEW_INPUT || motionMatching->forceMotionMatching_) {
                 crl::Logger::consolePrint("transition happens!");
                 motionMatching->matchMotion(camera);
                 frame = 0;
                 NEW_INPUT = false;
+                motionMatching->forceMotionMatching_ = false;
                 motionMatching->switchDatabase();
             }
         }
@@ -155,7 +156,7 @@ public:
             // motionMatching->turningSpeed = -1.0;
             if (!motionMatching->KEY_J) NEW_INPUT = true;
             motionMatching->KEY_J = true;
-            motionMatching->switchDatabase();
+            // motionMatching->switchDatabase();
         }
 
         return false;
@@ -180,7 +181,7 @@ public:
         }
         if (key == GLFW_KEY_J) {
             // if (motionMatching->KEY_J) NEW_INPUT = true;
-            motionMatching->KEY_J = false;
+            // motionMatching->KEY_J = false;
             // motionMatching->switchDatabase();
         }
 

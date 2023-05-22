@@ -74,6 +74,9 @@ public:
 
     // if this is empty, we extract height and speed of root
     std::string referenceJointName = "";  // Spine1
+    bool isJumping_ = false;
+    bool isCartoonOn_ = false;
+    bool forceMotionMatching_ = false;
 
 private:
     MocapSkeleton *skeleton_ = nullptr;
@@ -202,7 +205,7 @@ public:
         if (KEY_J){
             this->oldDatabase_ = this->database_;
             this->database_ = this->jumpDatabase_;
-            std::cout << (oldDatabase_ == database_) << std::endl;
+            // std::cout << (oldDatabase_ == database_) << std::endl;
         }
         else{
             this->oldDatabase_ = this->database_;
@@ -215,11 +218,22 @@ public:
      * sequence and new motion is the best match searched with a query vector.
      */
     void matchMotion(const crl::gui::TrackingCamera &camera) {
-        dVector xq;
-        if(KEY_J) xq = createQueryVector3d(camera);
-        else xq = createQueryVector(camera);
-
-        MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
+        MotionIndex bestMatch;
+        if(KEY_J)
+        {
+            // jump
+            // std::cout << "Here, for jump matching" << std::endl;
+            this -> isCartoonOn_ = true;
+            bestMatch = {0, 0};
+            switchDatabase();
+        }
+        // if(KEY_J) xq = createQueryVector3d(camera);
+        else 
+        {
+            dVector xq;
+            xq = createQueryVector(camera);
+            bestMatch = database_->searchBestMatchByQuery(xq);
+        }
 
         Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s) \n",  //
                              currMotionIdx_.first, currMotionIdx_.second - 1, database_->getClipByClipIndex(currMotionIdx_.first)->getName().c_str(),
@@ -281,6 +295,13 @@ public:
             // remember! queue.front() is next frame!
             skeleton_->setState(&queue_.front());
             queue_.pop_front();
+            if (queue_.size() == 0 && this->KEY_J)
+            {
+                this->KEY_J = false;
+                this->isCartoonOn_ = false;
+                this->switchDatabase();
+                this->forceMotionMatching_ = true;
+            }
         } else {
             // if not, we need to compute new motion
             MocapSkeletonState newMotion_t = computeStitchedMotion(database_->getMotionByMotionIndex(currMotionIdx_));
@@ -1224,9 +1245,14 @@ private:
     void saveFutureMotionIntoQueue() {
         // back up for t-1
         MocapSkeletonState newMotion_tMinus1(skeleton_);
-
+        int localQueueSize = this->queueSize;
+        if (KEY_J)
+        {
+            localQueueSize = database_->getClipByClipIndex(0)->getFrameCount() - 1;
+        }
         // save inertialized motion to queue (from next frame)
-        for (uint i = 0; i < queueSize; i++) {
+        for (uint i = 0; i < localQueueSize; i++) {
+        // for (uint i = 0; i < queueSize; i++) {
             if (currMotionIdx_.second + i >= database_->getClipByClipIndex(currMotionIdx_.first)->getFrameCount())
                 throw std::runtime_error(
                     "MotionMatcher::matchMotion() error: something "
