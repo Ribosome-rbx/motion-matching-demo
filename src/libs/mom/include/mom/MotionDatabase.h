@@ -199,7 +199,8 @@ private:
                 // current character frame
                 // Quaternion characterQ = getRotationQuaternion(yaw, worldUp);
                 Quaternion characterQ = calc_facing_quat(rootQ);
-                P3D characterPos(rootPos.x, 0, rootPos.z);
+                // P3D characterPos(rootPos.x, 0, rootPos.z);
+                P3D characterPos(rootPos.x, rootPos.y, rootPos.z);
 
                 // 1/2: 2D projected future trajectory and heading
                 // after 20 frames
