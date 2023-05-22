@@ -15,8 +15,9 @@ public:
         // load mann dataset
         std::string mocapPath = dataPath_ + "walk1_subject1.bvh";
         mocapSkeleton = new crl::mocap::MocapSkeleton(mocapPath.c_str());
-        motionDatabase = new crl::mocap::MotionDatabase(dataPath_);
-        motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase);
+        motionDatabase = new crl::mocap::MotionDatabase(dataPath_, false);
+        motionJumpDatabase = new crl::mocap::MotionDatabase(dataJumpPath_, true);
+        motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase, motionJumpDatabase);
         motionMatching->queueSize = 60;
     }
 
@@ -190,8 +191,10 @@ public:
 
 public:
     std::string dataPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_mini/";
+    std::string dataJumpPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_jump/";
     crl::mocap::MocapSkeleton *mocapSkeleton = nullptr;
     crl::mocap::MotionDatabase *motionDatabase = nullptr;
+    crl::mocap::MotionDatabase *motionJumpDatabase = nullptr;
     crl::mocap::MotionMatching *motionMatching = nullptr;
     std::vector<crl::P3D> hitPoints;
 private:

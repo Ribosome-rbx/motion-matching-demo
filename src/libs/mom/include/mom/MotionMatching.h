@@ -77,6 +77,7 @@ public:
 private:
     MocapSkeleton *skeleton_ = nullptr;
     MotionDatabase *database_ = nullptr;
+    MotionDatabase *jumpDatabase_ = nullptr;
 
     // time related
     double motionTime_ = 0;
@@ -113,12 +114,13 @@ private:
     crl::gui::RealTimeLinePlot2D<crl::dVector> eeSpeedPlots_;
 
 public:
-    MotionMatching(MocapSkeleton *skeleton, MotionDatabase *database)
+    MotionMatching(MocapSkeleton *skeleton, MotionDatabase *database, MotionDatabase * jumpDatabase)
         : characterSpeedPlots_("Character Speed", "[sec]", "[m/s] or [rad/s]"),
           speedProfilePlots_("Speed Profile", "[sec]", "[m/s] or [rad/s]"),
           eeSpeedPlots_("Feet Speed", "[sec]", "[m/s]") {
         this->skeleton_ = skeleton;
         this->database_ = database;
+        this->jumpDatabase_ = jumpDatabase;
         jointInertializationInfos_.resize(skeleton->getMarkerCount());
 
         // set initial motion
