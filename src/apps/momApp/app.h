@@ -34,6 +34,9 @@ public:
             motionMatching->matchMotion(camera);
             frame = 0;
             NEW_INPUT = false;
+            motionMatching->KEY_J = false;
+            motionMatching->switchDatabase();
+
         }
         motionMatching->advance();
         frame++;
@@ -146,6 +149,7 @@ public:
             // motionMatching->turningSpeed = -1.0;
             if (!motionMatching->KEY_J) NEW_INPUT = true;
             motionMatching->KEY_J = true;
+            motionMatching->switchDatabase();
         }
 
         return false;
@@ -168,6 +172,11 @@ public:
             if (motionMatching->KEY_D) NEW_INPUT = true;
             motionMatching->KEY_D = false;
         }
+        // if (key == GLFW_KEY_J) {
+        //     if (motionMatching->KEY_J) NEW_INPUT = true;
+        //     motionMatching->KEY_J = false;
+        //     motionMatching->switchDatabase();
+        // }
 
         return false;
     }

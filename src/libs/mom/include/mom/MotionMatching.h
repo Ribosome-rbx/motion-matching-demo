@@ -79,6 +79,7 @@ private:
     MocapSkeleton *skeleton_ = nullptr;
     MotionDatabase *database_ = nullptr;
     MotionDatabase *jumpDatabase_ = nullptr;
+    MotionDatabase *walkDatabase_ = nullptr;
 
     // time related
     double motionTime_ = 0;
@@ -115,13 +116,14 @@ private:
     crl::gui::RealTimeLinePlot2D<crl::dVector> eeSpeedPlots_;
 
 public:
-    MotionMatching(MocapSkeleton *skeleton, MotionDatabase *database, MotionDatabase * jumpDatabase)
+    MotionMatching(MocapSkeleton *skeleton, MotionDatabase *walkDatabase, MotionDatabase * jumpDatabase)
         : characterSpeedPlots_("Character Speed", "[sec]", "[m/s] or [rad/s]"),
           speedProfilePlots_("Speed Profile", "[sec]", "[m/s] or [rad/s]"),
           eeSpeedPlots_("Feet Speed", "[sec]", "[m/s]") {
         this->skeleton_ = skeleton;
-        this->database_ = database;
+        this->walkDatabase_ = walkDatabase;
         this->jumpDatabase_ = jumpDatabase;
+        this->database_ = this->walkDatabase_;
         jointInertializationInfos_.resize(skeleton->getMarkerCount());
 
         // set initial motion
@@ -194,20 +196,20 @@ public:
         }
     }
 
+    void switchDatabase(){
+        if (KEY_J) this->database_ = this->jumpDatabase_;
+        else this->database_ = this->walkDatabase_;
+    }
+
     /**
      * compute inertialization and update. here, old motion is current motion
      * sequence and new motion is the best match searched with a query vector.
      */
     void matchMotion(const crl::gui::TrackingCamera &camera) {
         dVector xq;
-        if(KEY_J) {
-            xq = createQueryVector3d(camera);
-            KEY_J= false;
-        }
-        else {
-            xq = createQueryVector(camera);
-        }
-        
+        if(KEY_J) xq = createQueryVector3d(camera);
+        else xq = createQueryVector(camera);
+
         MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
 
         Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s) \n",  //
