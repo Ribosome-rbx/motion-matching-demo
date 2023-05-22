@@ -211,7 +211,7 @@ private:
                 // V3D td1 = rootQAfter20 * worldForward;
                 V3D td1 = c->getState(j + 20).getRootVelocity();
                 td1 = characterQ.inverse() * td1;
-                td1.y() = 0;
+                // td1.y() = 0;
                 td1.normalize();
 
                 // after 40 frames
@@ -223,7 +223,7 @@ private:
                 // V3D td2 = rootQAfter40 * worldForward;
                 V3D td2 = c->getState(j + 40).getRootVelocity();
                 td2 = characterQ.inverse() * td2;
-                td2.y() = 0;
+                // td2.y() = 0;
                 td2.normalize();
 
                 // after 60 frames
@@ -235,7 +235,7 @@ private:
                 // V3D td3 = rootQAfter60 * worldForward;
                 V3D td3 = c->getState(j + 60).getRootVelocity();
                 td3 = characterQ.inverse() * td3;
-                td3.y() = 0;
+                // td3.y() = 0;
                 td3.normalize();
 
                 // 3/4: feet positions and velocities w.r.t character frame (in R^12)
@@ -268,50 +268,102 @@ private:
                 V3D htdot = m.getRootVelocity();
                 htdot = characterQ.inverse() * htdot;
 
+                // // save to feature vector
+                // x[0] = tt1.x();
+                // x[1] = tt1.z();
+                // x[2] = tt2.x();
+                // x[3] = tt2.z();
+                // x[4] = tt3.x();
+                // x[5] = tt3.z();
+
+                // x[6] = td1.x();
+                // x[7] = td1.z();
+                // x[8] = td2.x();
+                // x[9] = td2.z();
+                // x[10] = td3.x();
+                // x[11] = td3.z();
+
+                // // x[12] = ft1.x();
+                // // x[13] = ft1.y();
+                // // x[14] = ft1.z();
+                // x[12] = ft2.x();
+                // x[13] = ft2.y();
+                // x[14] = ft2.z();
+                // // x[18] = ft3.x();
+                // // x[19] = ft3.y();
+                // // x[20] = ft3.z();
+                // x[15] = ft4.x();
+                // x[16] = ft4.y();
+                // x[17] = ft4.z();
+
+                // // x[24] = ft1dot.x();
+                // // x[25] = ft1dot.y();
+                // // x[26] = ft1dot.z();
+                // x[18] = ft2dot.x();
+                // x[19] = ft2dot.y();
+                // x[20] = ft2dot.z();
+                // // x[30] = ft3dot.x();
+                // // x[31] = ft3dot.y();
+                // // x[32] = ft3dot.z();
+                // x[21] = ft4dot.x();
+                // x[22] = ft4dot.y();
+                // x[23] = ft4dot.z();
+
+                // x[24] = htdot.x();
+                // x[25] = htdot.y();
+                // x[26] = htdot.z();
+
+
                 // save to feature vector
                 x[0] = tt1.x();
-                x[1] = tt1.z();
-                x[2] = tt2.x();
-                x[3] = tt2.z();
-                x[4] = tt3.x();
-                x[5] = tt3.z();
+                x[1] = tt1.y();
+                x[2] = tt1.z();
+                x[3] = tt2.x();
+                x[4] = tt2.y();
+                x[5] = tt2.z();
+                x[6] = tt3.x();
+                x[7] = tt3.y();
+                x[8] = tt3.z();
 
-                x[6] = td1.x();
-                x[7] = td1.z();
-                x[8] = td2.x();
-                x[9] = td2.z();
-                x[10] = td3.x();
-                x[11] = td3.z();
+                x[9] = td1.x();
+                x[10] = td1.y();
+                x[11] = td1.z();
+                x[12] = td2.x();
+                x[13] = td2.y();
+                x[14] = td2.z();
+                x[15] = td3.x();
+                x[16] = td3.y();
+                x[17] = td3.z();
 
                 // x[12] = ft1.x();
                 // x[13] = ft1.y();
                 // x[14] = ft1.z();
-                x[12] = ft2.x();
-                x[13] = ft2.y();
-                x[14] = ft2.z();
+                x[18] = ft2.x();
+                x[19] = ft2.y();
+                x[20] = ft2.z();
                 // x[18] = ft3.x();
                 // x[19] = ft3.y();
                 // x[20] = ft3.z();
-                x[15] = ft4.x();
-                x[16] = ft4.y();
-                x[17] = ft4.z();
+                x[21] = ft4.x();
+                x[22] = ft4.y();
+                x[23] = ft4.z();
 
                 // x[24] = ft1dot.x();
                 // x[25] = ft1dot.y();
                 // x[26] = ft1dot.z();
-                x[18] = ft2dot.x();
-                x[19] = ft2dot.y();
-                x[20] = ft2dot.z();
+                x[24] = ft2dot.x();
+                x[25] = ft2dot.y();
+                x[26] = ft2dot.z();
                 // x[30] = ft3dot.x();
                 // x[31] = ft3dot.y();
                 // x[32] = ft3dot.z();
-                x[21] = ft4dot.x();
-                x[22] = ft4dot.y();
-                x[23] = ft4dot.z();
+                x[27] = ft4dot.x();
+                x[28] = ft4dot.y();
+                x[29] = ft4dot.z();
 
-                x[24] = htdot.x();
-                x[25] = htdot.y();
-                x[26] = htdot.z();
+                x[30] = htdot.x();
+                x[31] = htdot.y();
+                x[32] = htdot.z();
 
                 features_.emplace_back();
                 features_.back().x = x;
@@ -361,7 +413,7 @@ public:
 private:
     std::vector<std::unique_ptr<BVHClip>> clips_;
     std::vector<MocapFeature> features_;
-    const uint featureDim_ = 27;
+    const uint featureDim_ = 27 + 6;
 
     // mean and std of features
     dVector mu_, sigma_;
