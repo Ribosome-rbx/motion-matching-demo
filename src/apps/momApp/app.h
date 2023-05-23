@@ -152,7 +152,10 @@ public:
             motionMatching->KEY_J = true;
             motionMatching->switchDatabase();
         }
-
+        if (key == GLFW_KEY_LEFT_SHIFT) {
+            if (!motionMatching->KEY_J)
+                motionMatching->speedForward = 10.0;
+        }
         return false;
     }
 
@@ -177,6 +180,10 @@ public:
             // if (motionMatching->KEY_J) NEW_INPUT = true;
             motionMatching->KEY_J = false;
             motionMatching->switchDatabase();
+        }
+        if (key == GLFW_KEY_LEFT_SHIFT) {
+            if (!motionMatching->KEY_J)
+                motionMatching->speedForward = 3.3;
         }
 
         return false;
