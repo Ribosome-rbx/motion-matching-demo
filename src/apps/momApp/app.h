@@ -17,7 +17,8 @@ public:
         mocapSkeleton = new crl::mocap::MocapSkeleton(mocapPath.c_str());
         motionDatabase = new crl::mocap::MotionDatabase(dataPath_, false);
         motionJumpDatabase = new crl::mocap::MotionDatabase(dataJumpPath_, true);
-        motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase, motionJumpDatabase);
+        motionStopDatabase = new crl::mocap::MotionDatabase(dataStopPath_, false); 
+        motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase, motionJumpDatabase, motionStopDatabase);
         motionMatching->queueSize = 60;
     }
 
@@ -31,13 +32,22 @@ public:
         static uint frame = 0;
         int max_frame = 30;
         if (motionMatching->KEY_J) max_frame += 20;
-        if (frame >= max_frame || NEW_INPUT ) {
-            crl::Logger::consolePrint("transition happens!");
-            motionMatching->matchMotion(camera);
-            frame = 0;
-            NEW_INPUT = false;
-            motionMatching->switchDatabase();
+        if (!motionMatching->isCartoonOn_)
+        {
+            if ((frame >= max_frame && !motionMatching->shouldStop_) || NEW_INPUT ) {
+                crl::Logger::consolePrint("transition happens!");\
+                if (motionMatching->shouldStop_)
+                {
+                    motionMatching->shouldStop_ = false;
+                    motionMatching->switchDatabase();
+                }
+                motionMatching->matchMotion(camera);
+                frame = 0;
+                NEW_INPUT = false;
+                motionMatching->switchDatabase();
+            }
         }
+        
 
         motionMatching->advance();
         frame++;
@@ -214,9 +224,11 @@ public:
 public:
     std::string dataPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_mini/";
     std::string dataJumpPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_jump/";
+    std::string dataStopPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_stop/";
     crl::mocap::MocapSkeleton *mocapSkeleton = nullptr;
     crl::mocap::MotionDatabase *motionDatabase = nullptr;
     crl::mocap::MotionDatabase *motionJumpDatabase = nullptr;
+    crl::mocap::MotionDatabase *motionStopDatabase = nullptr;
     crl::mocap::MotionMatching *motionMatching = nullptr;
     std::vector<crl::P3D> hitPoints;
 private:
