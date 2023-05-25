@@ -100,10 +100,8 @@ public:
                 feature_loss_vec[i-traj_feat_number] = loss_vec[i];
             }
             double traj_loss = traj_loss_vec.norm(), feature_loss = feature_loss_vec.norm();
-            double loss = 0.8*traj_loss + 0.2*feature_loss;
-            // double loss = weighted_loss_vec.norm();
-            // double loss = (xNormalized - xqNormalized).norm();
-            
+            double loss = 0.75*traj_loss + 0.25*feature_loss;
+                        
             if (loss < minLoss) {
                 minLoss = loss;
                 minIdx = {f.datasetIdx, f.motionIdx};
@@ -445,6 +443,7 @@ private:
 
     // mean and std of features
     dVector mu_, sigma_;
+    Eigen::VectorXd weight_ {{2,2,2,2,2,2, 2,2,2,2,2,2, 1,1,1,1,1,1, 0.2,0.2,0.2,0.2,0.2,0.2, 1,1,1}};
 };
 
 }  // namespace crl::mocap
