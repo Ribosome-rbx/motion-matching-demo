@@ -39,6 +39,7 @@ public:
     bool KEY_S = false;
     bool KEY_D = false;
     bool KEY_J = false;
+    bool KEY_C = false;
 
     // commands
     double speedForward = 0;
@@ -199,10 +200,9 @@ public:
     }
 
     void switchDatabase(){
-        if (KEY_J){
+        if (KEY_J || KEY_C){
             this->oldDatabase_ = this->database_;
             this->database_ = this->jumpDatabase_;
-            std::cout << (oldDatabase_ == database_) << std::endl;
         }
         else{
             this->oldDatabase_ = this->database_;
@@ -216,7 +216,7 @@ public:
      */
     void matchMotion(const crl::gui::TrackingCamera &camera) {
         dVector xq;
-        if(KEY_J) xq = createQueryVector3d(camera);
+        if(KEY_J || KEY_C) xq = createQueryVector3d(camera);
         else xq = createQueryVector(camera);
 
         MotionIndex bestMatch = database_->searchBestMatchByQuery(xq);
@@ -774,7 +774,7 @@ private:
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.1f;
+            double halflife = 0.5f;
 
             while (t <= 1.0) {
                 V3D curr_vel = vel; // V0 in the world frame
@@ -1012,12 +1012,33 @@ private:
             cameraDir = camera_dir;
 
             V3D goal_vel = characterVel;
-            goal_vel.y() -= 2.0; // minus jump init velocity
-            goalVel = goal_vel;
-
             P3D pos = characterPos;
             V3D vel = characterVel;
-            vel.y() += 2.0; // add jump init velocity
+
+            if(KEY_J){
+                goal_vel.y() -= 3.0; // minus jump goal velocity
+                goalVel = goal_vel;
+                vel.y() += 3.0; // add jump init velocity
+            }
+            if(KEY_C){
+                Eigen::Vector2d key_dir(0,0);
+                if (KEY_W) key_dir[0] += 1;
+                if (KEY_A) key_dir[1] -= 1;
+                if (KEY_S) key_dir[0] -= 1;
+                if (KEY_D) key_dir[1] += 1;
+                key_dir = key_dir.normalized();
+                Eigen::Matrix3d rot_matrix;
+                rot_matrix << key_dir[0], 0, -key_dir[1],
+                                0, 1, 0,
+                                key_dir[1], 0, key_dir[0];
+
+                // in the world frame
+                V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
+                goal_vel = goal_dir * 1.1; // creep velocity is fixed to 1
+                goalVel = goal_vel;
+                if (vel.norm() > 2) vel = vel.norm() * 1.1; // match hip velocity
+                // if (pos.y > 0.5) vel.y() -= 2.0; // match hip height
+            }
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
@@ -1033,6 +1054,8 @@ private:
                 spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
                 spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
 
+                std::cout<< vel.norm() << std::endl;
+                if(KEY_C) curr_pos.y = 0.33;
                 curr_pos.y = curr_pos.y > 0? curr_pos.y : 0;
                 // store trajectory at time t
                 queryPosTrajectory.addKnot(t, V3D(curr_pos));

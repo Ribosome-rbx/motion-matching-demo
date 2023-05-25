@@ -100,7 +100,7 @@ public:
                 feature_loss_vec[i-traj_feat_number] = loss_vec[i];
             }
             double traj_loss = traj_loss_vec.norm(), feature_loss = feature_loss_vec.norm();
-            double loss = 0.75*traj_loss + 0.25*feature_loss;
+            double loss = 0.8*traj_loss + 0.2*feature_loss;
             // double loss = weighted_loss_vec.norm();
             // double loss = (xNormalized - xqNormalized).norm();
             

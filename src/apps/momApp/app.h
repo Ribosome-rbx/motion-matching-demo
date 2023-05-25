@@ -31,6 +31,7 @@ public:
         static uint frame = 0;
         int max_frame = 30;
         if (motionMatching->KEY_J) max_frame += 20;
+        if (motionMatching->KEY_C) max_frame += 20;
         if (frame >= max_frame || NEW_INPUT ) {
             crl::Logger::consolePrint("transition happens!");
             motionMatching->matchMotion(camera);
@@ -152,6 +153,12 @@ public:
             motionMatching->KEY_J = true;
             motionMatching->switchDatabase();
         }
+        if (key == GLFW_KEY_C) {
+            // motionMatching->turningSpeed = -1.0;
+            if (!motionMatching->KEY_C) NEW_INPUT = true;
+            motionMatching->KEY_C = true;
+            motionMatching->switchDatabase();
+        }
 
         return false;
     }
@@ -176,6 +183,11 @@ public:
         if (key == GLFW_KEY_J) {
             // if (motionMatching->KEY_J) NEW_INPUT = true;
             motionMatching->KEY_J = false;
+            motionMatching->switchDatabase();
+        }
+        if (key == GLFW_KEY_C) {
+            // if (motionMatching->KEY_J) NEW_INPUT = true;
+            motionMatching->KEY_C = false;
             motionMatching->switchDatabase();
         }
 
