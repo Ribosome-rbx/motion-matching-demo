@@ -142,83 +142,97 @@ public:
             motionMatching->turningSpeed -= 0.3;
         }
 
-        if (key == GLFW_KEY_P) {
-            if (!motionMatching->KEY_P)
-            {
-                NEW_INPUT = true;
-                motionMatching->isDance_ = !motionMatching->isDance_;
-                if (motionMatching->isDance_)
-                    motionMatching->setPropertoDance();
-            }
-            motionMatching->KEY_P = true;
-            motionMatching->switchDatabase();
-        }
-        if (!motionMatching->isDance_)
-        {
-            if (key == GLFW_KEY_W) {
-                // motionMatching->speedForward = 3.0;
-                if (!motionMatching->KEY_W) NEW_INPUT = true;
-                motionMatching->KEY_W = true;
-            }
-            if (key == GLFW_KEY_S) {
-                // motionMatching->speedForward = -3.0;
-                if (!motionMatching->KEY_S) NEW_INPUT = true;
-                motionMatching->KEY_S = true;
-            }
-            if (key == GLFW_KEY_A) {
-                // motionMatching->turningSpeed = 1.0;
-                if (!motionMatching->KEY_A) NEW_INPUT = true;
-                motionMatching->KEY_A = true;
-            }
-            if (key == GLFW_KEY_D) {
-                // motionMatching->turningSpeed = -1.0;
-                if (!motionMatching->KEY_D) NEW_INPUT = true;
-                motionMatching->KEY_D = true;
-            }
-            if (key == GLFW_KEY_J) {
-                // motionMatching->turningSpeed = -1.0;
-                if (!motionMatching->KEY_J) NEW_INPUT = true;
-                motionMatching->KEY_J = true;
+        if (processIsRunning) {
+            if (key == GLFW_KEY_P) {
+                if (!motionMatching->KEY_P)
+                {
+                    NEW_INPUT = true;
+                    motionMatching->isDance_ = !motionMatching->isDance_;
+                    if (motionMatching->isDance_)
+                        motionMatching->setPropertoDance();
+                }
+                motionMatching->KEY_P = true;
                 motionMatching->switchDatabase();
             }
-            if (key == GLFW_KEY_LEFT_SHIFT) {
-                if (!motionMatching->KEY_J)
-                    motionMatching->speedForward = 10.0;
+            if (!motionMatching->isDance_)
+            {
+                if (key == GLFW_KEY_W) {
+                    // motionMatching->speedForward = 3.0;
+                    if (!motionMatching->KEY_W) NEW_INPUT = true;
+                    motionMatching->KEY_W = true;
+                }
+                if (key == GLFW_KEY_S) {
+                    // motionMatching->speedForward = -3.0;
+                    if (!motionMatching->KEY_S) NEW_INPUT = true;
+                    motionMatching->KEY_S = true;
+                }
+                if (key == GLFW_KEY_A) {
+                    // motionMatching->turningSpeed = 1.0;
+                    if (!motionMatching->KEY_A) NEW_INPUT = true;
+                    motionMatching->KEY_A = true;
+                }
+                if (key == GLFW_KEY_D) {
+                    // motionMatching->turningSpeed = -1.0;
+                    if (!motionMatching->KEY_D) NEW_INPUT = true;
+                    motionMatching->KEY_D = true;
+                }
+                if (key == GLFW_KEY_J) {
+                    // motionMatching->turningSpeed = -1.0;
+                    if (!motionMatching->KEY_J) NEW_INPUT = true;
+                    motionMatching->KEY_J = true;
+                    motionMatching->switchDatabase();
+                }
+                if (key == GLFW_KEY_C) {
+                    // motionMatching->turningSpeed = -1.0;
+                    if (!motionMatching->KEY_C) NEW_INPUT = true;
+                    motionMatching->KEY_C = true;
+                    motionMatching->switchDatabase();
+                }
+                if (key == GLFW_KEY_LEFT_SHIFT) {
+                    if (!motionMatching->KEY_J)
+                        motionMatching->speedForward = 10.0;
+                }
             }
         }
         return false;
     }
 
     virtual bool keyReleased(int key, int mods) override{
-        if (key == GLFW_KEY_W) {
-            if (motionMatching->KEY_W) NEW_INPUT = true;
-            motionMatching->KEY_W = false;
+        if (processIsRunning) {
+            if (key == GLFW_KEY_W) {
+                if (motionMatching->KEY_W) NEW_INPUT = true;
+                motionMatching->KEY_W = false;
+            }
+            if (key == GLFW_KEY_S) {
+                if (motionMatching->KEY_S) NEW_INPUT = true;
+                motionMatching->KEY_S = false;
+            }
+            if (key == GLFW_KEY_A) {
+                if (motionMatching->KEY_A) NEW_INPUT = true;
+                motionMatching->KEY_A = false;
+            }
+            if (key == GLFW_KEY_D) {
+                if (motionMatching->KEY_D) NEW_INPUT = true;
+                motionMatching->KEY_D = false;
+            }
+            if (key == GLFW_KEY_C) {
+                // if (motionMatching->KEY_J) NEW_INPUT = true;
+                motionMatching->KEY_C = false;
+                motionMatching->switchDatabase();
+            }
+            if (key == GLFW_KEY_J) {
+                // if (motionMatching->KEY_J) NEW_INPUT = true;
+                motionMatching->KEY_J = false;
+                motionMatching->switchDatabase();
+            }
+            if (key == GLFW_KEY_LEFT_SHIFT) {
+                if (!motionMatching->KEY_J)
+                    motionMatching->speedForward = 3.3;
+            }
+            if (key == GLFW_KEY_P) {
+                motionMatching->KEY_P = false;
+            }
         }
-        if (key == GLFW_KEY_S) {
-            if (motionMatching->KEY_S) NEW_INPUT = true;
-            motionMatching->KEY_S = false;
-        }
-        if (key == GLFW_KEY_A) {
-            if (motionMatching->KEY_A) NEW_INPUT = true;
-            motionMatching->KEY_A = false;
-        }
-        if (key == GLFW_KEY_D) {
-            if (motionMatching->KEY_D) NEW_INPUT = true;
-            motionMatching->KEY_D = false;
-        }
-        if (key == GLFW_KEY_J) {
-            // if (motionMatching->KEY_J) NEW_INPUT = true;
-            motionMatching->KEY_J = false;
-            motionMatching->switchDatabase();
-        }
-        if (key == GLFW_KEY_LEFT_SHIFT) {
-            if (!motionMatching->KEY_J)
-                motionMatching->speedForward = 3.3;
-        }
-        if (key == GLFW_KEY_P) {
-            motionMatching->KEY_P = false;
-        }
-
         return false;
     }
 
