@@ -923,7 +923,7 @@ private:
         bool stop20 = false;
         bool stop40 = false;
         bool stop60 = false;
-        double stop_threshold = 0.1;
+        double stop_threshold = 0.8;
         // 1/2: 2D projected future trajectory
         // TODO: check if 20/40/60 * dt is correct
         // after 20 frames
