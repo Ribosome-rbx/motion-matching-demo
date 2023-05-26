@@ -39,6 +39,7 @@ public:
     bool KEY_S = false;
     bool KEY_D = false;
     bool KEY_J = false;
+    bool KEY_P = false; // dance
 
     // commands
     double speedForward = 0;
@@ -76,15 +77,18 @@ public:
     std::string referenceJointName = "";  // Spine1
 
     bool shouldStop_ = false;
-    bool isCartoonOn_ = false;
+    bool isDance_ = false;
+    bool forceMotionMatching_ = false;
 
 private:
     MocapSkeleton *skeleton_ = nullptr;
     MotionDatabase *database_ = nullptr;
     MotionDatabase *oldDatabase_ = nullptr;
+    MotionDatabase *lastMatchedDatabaseTmp_ = nullptr;
     MotionDatabase *jumpDatabase_ = nullptr;
     MotionDatabase *walkDatabase_ = nullptr;
     MotionDatabase *stopDatabase_ = nullptr;
+    MotionDatabase *danceDatabase_ = nullptr;
 
     // time related
     double motionTime_ = 0;
@@ -121,7 +125,7 @@ private:
     crl::gui::RealTimeLinePlot2D<crl::dVector> eeSpeedPlots_;
 
 public:
-    MotionMatching(MocapSkeleton *skeleton, MotionDatabase *walkDatabase, MotionDatabase * jumpDatabase, MotionDatabase * stopDatabase)
+    MotionMatching(MocapSkeleton *skeleton, MotionDatabase *walkDatabase, MotionDatabase * jumpDatabase, MotionDatabase * stopDatabase, MotionDatabase * danceDatabase)
         : characterSpeedPlots_("Character Speed", "[sec]", "[m/s] or [rad/s]"),
           speedProfilePlots_("Speed Profile", "[sec]", "[m/s] or [rad/s]"),
           eeSpeedPlots_("Feet Speed", "[sec]", "[m/s]") {
@@ -129,11 +133,13 @@ public:
         this->walkDatabase_ = walkDatabase;
         this->jumpDatabase_ = jumpDatabase;
         this->stopDatabase_ = stopDatabase;
+        this->danceDatabase_ = danceDatabase;
         this->database_ = this->walkDatabase_;
         this->oldDatabase_ = this->walkDatabase_;
+        this->lastMatchedDatabaseTmp_ = this->walkDatabase_;
         jointInertializationInfos_.resize(skeleton->getMarkerCount());
         this->shouldStop_ = false;
-        this->isCartoonOn_ = false;
+        // this->isCartoonOn_ = false;
         // set initial motion
         resetMotion();
 
@@ -161,9 +167,9 @@ public:
      */
     void resetMotion(std::string initDataset = "walk1_subject1.bvh", uint initFrame = 0) {
         this->shouldStop_ = false;
-        this->isCartoonOn_ = false;
         this->database_ = this->walkDatabase_;
         this->oldDatabase_ = this->walkDatabase_;
+        this->lastMatchedDatabaseTmp_ = this->walkDatabase_;
         t_wc = P3D(0, 0, 0);
         Q_wc = Quaternion::Identity();
 
@@ -210,17 +216,22 @@ public:
 
     void switchDatabase(){
         if (KEY_J){
-            this->oldDatabase_ = this->database_;
+            this->oldDatabase_ = this->lastMatchedDatabaseTmp_;
             this->database_ = this->jumpDatabase_;
-            std::cout << (oldDatabase_ == database_) << std::endl;
+            // std::cout << (oldDatabase_ == database_) << std::endl;
         }
         else if (this->shouldStop_)
         {
-            this->oldDatabase_ = this->database_;
+            this->oldDatabase_ = this->lastMatchedDatabaseTmp_;
             this->database_ = this->stopDatabase_;
         }
+        else if (this->isDance_)
+        {
+            this->oldDatabase_ = this->lastMatchedDatabaseTmp_;
+            this->database_ = this->danceDatabase_;
+        }    
         else{
-            this->oldDatabase_ = this->database_;
+            this->oldDatabase_ = this->lastMatchedDatabaseTmp_;
             this->database_ = this->walkDatabase_;
         } 
     }
@@ -234,14 +245,14 @@ public:
         MotionIndex bestMatch;
         if(KEY_J) xq = createQueryVector3d(camera);
         else xq = createQueryVector(camera);
-        bestMatch = database_->searchBestMatchByQuery(xq);
         if (this->shouldStop_)
         {
             switchDatabase();
-            // jump
-            // std::cout << "Here, for jump matching" << std::endl;
-            this -> isCartoonOn_ = true;
             bestMatch = {0, 0};
+        }
+        else
+        {
+            bestMatch = database_->searchBestMatchByQuery(xq);
         }
 
         Logger::consolePrint("Best match: (%d, %d: %s) -> (%d, %d: %s) \n",  //
@@ -249,6 +260,7 @@ public:
                              bestMatch.first, bestMatch.second, database_->getClipByClipIndex(bestMatch.first)->getName().c_str());
         // here we need to match with previous frame!
         matchMotion({currMotionIdx_.first, currMotionIdx_.second - 1}, bestMatch);
+        lastMatchedDatabaseTmp_ = this->database_;
     }
 
     /**
@@ -303,12 +315,15 @@ public:
             // if queue is not empty, play saved motions
             // remember! queue.front() is next frame!
             skeleton_->setState(&queue_.front());
+            // if (queue_.size() == 0 && this->isDance_)
             if (queue_.size() == 1 && this->shouldStop_)
             {
-                this->isCartoonOn_ = false;
                 // this->switchDatabase();
                 currMotionIdx_.second--;
-                // this->forceMotionMatching_ = true;
+            }
+            else if (queue_.size() == 1 && this->isDance_)
+            {
+                this->forceMotionMatching_ = true;
             }
             else
             {
@@ -472,6 +487,17 @@ public:
         characterSpeedPlots_.draw();
         speedProfilePlots_.draw();
         eeSpeedPlots_.draw();
+    }
+
+    bool setPropertoDance()
+    {
+        this->KEY_A = false;
+        this->KEY_D = false;
+        this->KEY_S = false;
+        this->KEY_W = false;
+        this->KEY_J = false;
+        this->shouldStop_ = false;
+        return true;
     }
 
 private:
@@ -755,6 +781,12 @@ private:
         a = eydt*(a - j1*y*dt);
     }
 
+    bool isPropertoStop()
+    {
+        if (!(this->KEY_A || this->KEY_D || this->KEY_S || this->KEY_W || this->KEY_J || this->isDance_))
+            return true;
+        return false;
+    }
     /**
      * create query vector from current skeleton's state and user command.
      */
@@ -890,7 +922,7 @@ private:
         bool stop20 = false;
         bool stop40 = false;
         bool stop60 = false;
-        double stop_threshold = 0.05;
+        double stop_threshold = 0.1;
         // 1/2: 2D projected future trajectory
         // TODO: check if 20/40/60 * dt is correct
         // after 20 frames
@@ -947,7 +979,7 @@ private:
         } 
         else td3.normalize();
 
-        if (stop20 && stop40 && stop60)
+        if (stop20 && stop40 && stop60 && isPropertoStop())// && !this->isCartoonOn_
         {
             this->shouldStop_ = true;
         }
@@ -1151,11 +1183,6 @@ private:
         } 
         else td3.normalize();
 
-        if (stop20 && stop40 && stop60)
-        {
-            this->shouldStop_ = true;
-        }
-
         // 3/4: feet positions and velocities w.r.t character frame (in R^12)
         auto *hlJoint = skeleton_->getMarkerByName("LeftFoot");
         auto *hrJoint = skeleton_->getMarkerByName("RightFoot");
@@ -1270,6 +1297,11 @@ private:
         if (this->shouldStop_)
         {
             localQueueSize = database_->getClipByClipIndex(0)->getFrameCount() - 1;
+        }
+        else if (this->isDance_)
+        {
+            int currentMatchClipFrameCount = database_->getClipByClipIndex(currMotionIdx_.first)->getFrameCount();
+            localQueueSize = currentMatchClipFrameCount - currMotionIdx_.second;
         }
         for (uint i = 0; i < localQueueSize; i++) {
         // for (uint i = 0; i < queueSize; i++) {

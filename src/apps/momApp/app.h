@@ -18,13 +18,17 @@ public:
         motionDatabase = new crl::mocap::MotionDatabase(dataPath_, false);
         motionJumpDatabase = new crl::mocap::MotionDatabase(dataJumpPath_, true);
         motionStopDatabase = new crl::mocap::MotionDatabase(dataStopPath_, false); 
-        motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase, motionJumpDatabase, motionStopDatabase);
+        motionDanceDatabase = new crl::mocap::MotionDatabase(dataDancePath_, false); 
+        motionMatching = new crl::mocap::MotionMatching(mocapSkeleton, motionDatabase, motionJumpDatabase, motionStopDatabase, motionDanceDatabase);
         motionMatching->queueSize = 60;
     }
 
     ~App() override {
         delete mocapSkeleton;
         delete motionDatabase;
+        delete motionJumpDatabase;
+        delete motionStopDatabase;
+        delete motionDanceDatabase;
     }
 
     void process() override {
@@ -32,10 +36,11 @@ public:
         static uint frame = 0;
         int max_frame = 30;
         if (motionMatching->KEY_J) max_frame += 20;
-        if (!motionMatching->isCartoonOn_)
+        // if (!motionMatching->isCartoonOn_)
         {
-            if ((frame >= max_frame && !motionMatching->shouldStop_) || NEW_INPUT ) {
+            if ((frame >= max_frame && !motionMatching->shouldStop_ && !motionMatching->isDance_) || NEW_INPUT || motionMatching->forceMotionMatching_) {   // || motionMatching->forceMotionMatching_
                 crl::Logger::consolePrint("transition happens!");\
+                motionMatching->forceMotionMatching_ = false;
                 if (motionMatching->shouldStop_)
                 {
                     motionMatching->shouldStop_ = false;
@@ -136,35 +141,50 @@ public:
         if (key == GLFW_KEY_RIGHT) {
             motionMatching->turningSpeed -= 0.3;
         }
-        if (key == GLFW_KEY_W) {
-            // motionMatching->speedForward = 3.0;
-            if (!motionMatching->KEY_W) NEW_INPUT = true;
-            motionMatching->KEY_W = true;
-        }
-        if (key == GLFW_KEY_S) {
-            // motionMatching->speedForward = -3.0;
-            if (!motionMatching->KEY_S) NEW_INPUT = true;
-            motionMatching->KEY_S = true;
-        }
-        if (key == GLFW_KEY_A) {
-            // motionMatching->turningSpeed = 1.0;
-            if (!motionMatching->KEY_A) NEW_INPUT = true;
-            motionMatching->KEY_A = true;
-        }
-        if (key == GLFW_KEY_D) {
-            // motionMatching->turningSpeed = -1.0;
-            if (!motionMatching->KEY_D) NEW_INPUT = true;
-            motionMatching->KEY_D = true;
-        }
-        if (key == GLFW_KEY_J) {
-            // motionMatching->turningSpeed = -1.0;
-            if (!motionMatching->KEY_J) NEW_INPUT = true;
-            motionMatching->KEY_J = true;
+
+        if (key == GLFW_KEY_P) {
+            if (!motionMatching->KEY_P)
+            {
+                NEW_INPUT = true;
+                motionMatching->isDance_ = !motionMatching->isDance_;
+                if (motionMatching->isDance_)
+                    motionMatching->setPropertoDance();
+            }
+            motionMatching->KEY_P = true;
             motionMatching->switchDatabase();
         }
-        if (key == GLFW_KEY_LEFT_SHIFT) {
-            if (!motionMatching->KEY_J)
-                motionMatching->speedForward = 10.0;
+        if (!motionMatching->isDance_)
+        {
+            if (key == GLFW_KEY_W) {
+                // motionMatching->speedForward = 3.0;
+                if (!motionMatching->KEY_W) NEW_INPUT = true;
+                motionMatching->KEY_W = true;
+            }
+            if (key == GLFW_KEY_S) {
+                // motionMatching->speedForward = -3.0;
+                if (!motionMatching->KEY_S) NEW_INPUT = true;
+                motionMatching->KEY_S = true;
+            }
+            if (key == GLFW_KEY_A) {
+                // motionMatching->turningSpeed = 1.0;
+                if (!motionMatching->KEY_A) NEW_INPUT = true;
+                motionMatching->KEY_A = true;
+            }
+            if (key == GLFW_KEY_D) {
+                // motionMatching->turningSpeed = -1.0;
+                if (!motionMatching->KEY_D) NEW_INPUT = true;
+                motionMatching->KEY_D = true;
+            }
+            if (key == GLFW_KEY_J) {
+                // motionMatching->turningSpeed = -1.0;
+                if (!motionMatching->KEY_J) NEW_INPUT = true;
+                motionMatching->KEY_J = true;
+                motionMatching->switchDatabase();
+            }
+            if (key == GLFW_KEY_LEFT_SHIFT) {
+                if (!motionMatching->KEY_J)
+                    motionMatching->speedForward = 10.0;
+            }
         }
         return false;
     }
@@ -194,6 +214,9 @@ public:
         if (key == GLFW_KEY_LEFT_SHIFT) {
             if (!motionMatching->KEY_J)
                 motionMatching->speedForward = 3.3;
+        }
+        if (key == GLFW_KEY_P) {
+            motionMatching->KEY_P = false;
         }
 
         return false;
@@ -225,10 +248,12 @@ public:
     std::string dataPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_mini/";
     std::string dataJumpPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_jump/";
     std::string dataStopPath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_stop/";
+    std::string dataDancePath_ = MOTION_MATCHING_DEMO_DATA_FOLDER "/mocap/lafan1_dance/";
     crl::mocap::MocapSkeleton *mocapSkeleton = nullptr;
     crl::mocap::MotionDatabase *motionDatabase = nullptr;
     crl::mocap::MotionDatabase *motionJumpDatabase = nullptr;
     crl::mocap::MotionDatabase *motionStopDatabase = nullptr;
+    crl::mocap::MotionDatabase *motionDanceDatabase = nullptr;
     crl::mocap::MotionMatching *motionMatching = nullptr;
     std::vector<crl::P3D> hitPoints;
 private:
