@@ -841,7 +841,7 @@ private:
 
             double dtTraj = 1.0 / 60;  // trajectory dt
             double t = 0;
-            double halflife = 0.5f;
+            double halflife = 0.3f;
 
             while (t <= 1.0) {
                 V3D curr_vel = vel; // V0 in the world frame
@@ -1110,10 +1110,10 @@ private:
 
                 // in the world frame
                 V3D goal_dir = (rot_matrix * camera_dir.normalized()).normalized();
-                goal_vel = goal_dir * 1.1; // creep velocity is fixed to 1
+                goal_vel = goal_dir * 0.8; // creep velocity is fixed to 1
                 goalVel = goal_vel;
-                if (vel.norm() > 2) vel = vel.norm() * 1.1; // match hip velocity
-                // if (pos.y > 0.5) vel.y() -= 2.0; // match hip height
+                if (vel.norm() > 1.5) vel = vel.normalized() * 0.8; // match hip velocity
+                // if (pos.y > 0.5) vel.y() -= 3.0; // match hip height
             }
 
             double dtTraj = 1.0 / 60;  // trajectory dt
@@ -1130,8 +1130,8 @@ private:
                 spring_character_update(curr_pos[1], curr_vel[1], init_a[1], goal_vel[1], halflife, t);
                 spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
 
-                std::cout<< vel.norm() << std::endl;
-                if(KEY_C) curr_pos.y = 0.33;
+                // std::cout<< vel.norm() << std::endl;
+                if(KEY_C) curr_pos.y = 0.40;
                 curr_pos.y = curr_pos.y > 0? curr_pos.y : 0;
                 // store trajectory at time t
                 queryPosTrajectory.addKnot(t, V3D(curr_pos));

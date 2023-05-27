@@ -76,7 +76,6 @@ public:
         dVector xqNormalized = (xq - mu_).array() / sigma_.array();
 
         int traj_feat_number;
-        int other_feat_number = 15;
         if (this->use_y_)
         {
             traj_feat_number = 18;
@@ -85,6 +84,7 @@ public:
         {
             traj_feat_number = 12;
         }
+        int other_feat_number = this->featureDim_ - traj_feat_number;
 
         for (const auto &f : features_) {
             dVector xNormalized = (f.x - mu_).array() / sigma_.array();
@@ -100,7 +100,7 @@ public:
                 feature_loss_vec[i-traj_feat_number] = loss_vec[i];
             }
             double traj_loss = traj_loss_vec.norm(), feature_loss = feature_loss_vec.norm();
-            double loss = 0.75*traj_loss + 0.25*feature_loss;
+            double loss = 0.80*traj_loss + 0.20*feature_loss;
                         
             if (loss < minLoss) {
                 minLoss = loss;

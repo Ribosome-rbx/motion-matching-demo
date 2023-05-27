@@ -56,7 +56,13 @@ public:
 
         motionMatching->advance();
         frame++;
-
+        if(motionMatching->KEY_C){
+            crl::V3D tmp_v(mocapSkeleton->root->state.velocity[0], 0, mocapSkeleton->root->state.velocity[2]);
+            // std::cout << "x: " << mocapSkeleton->root->state.velocity[0] << std::endl;
+            // std::cout << "z: " << mocapSkeleton->root->state.velocity[2] << std::endl;
+            std::cout << "vel: " << tmp_v.norm() << std::endl;
+            std::cout << "pos y: " << mocapSkeleton->root->state.pos.y << std::endl;
+        }
         crl::P3D pos_(mocapSkeleton->root->state.pos.x, 0, mocapSkeleton->root->state.pos.z);
         crl::V3D vel_(crl::P3D(mocapSkeleton->root->state.velocity[0], 0, mocapSkeleton->root->state.velocity[2]));
         motionMatching->historyPos.push_back(pos_);
@@ -190,7 +196,7 @@ public:
                 }
                 if (key == GLFW_KEY_LEFT_SHIFT) {
                     if (!motionMatching->KEY_J)
-                        motionMatching->speedForward = 10.0;
+                        motionMatching->speedForward = 13.0;
                 }
             }
         }
@@ -227,7 +233,7 @@ public:
             }
             if (key == GLFW_KEY_LEFT_SHIFT) {
                 if (!motionMatching->KEY_J)
-                    motionMatching->speedForward = 3.3;
+                    motionMatching->speedForward = 3.6;
             }
             if (key == GLFW_KEY_P) {
                 motionMatching->KEY_P = false;
