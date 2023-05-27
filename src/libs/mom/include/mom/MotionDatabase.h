@@ -38,14 +38,66 @@ static Matrix3x3 calc_facing_rotm(Quaternion &rootQ) {
     return new_rotm;
 }
 
+/**
+ * @brief Use this whenever you want "Character Q"
+ * 
+ * @param rootQ raw root quaternion from mocapClip
+ * @return Quaternion Charater Q
+ */
 inline Quaternion calc_facing_quat(Quaternion &rootQ) {
     return Quaternion(calc_facing_rotm(rootQ));
 }
 
+/**
+ * @brief Use this to get "character yaw angle"
+ * @note since atan2 was used, result ranges in [-pi, pi]
+ * @param rootQ raw root quaternion from mocapClip
+ * @return double character yaw angle
+ */
 inline double calc_facing_yaw(Quaternion &rootQ) {
     Matrix3x3 rotm = calc_facing_rotm(rootQ);
     return std::atan2(rotm(2,0), rotm(0,0));
 }
+
+
+/**
+ * @brief 2 layer AABB tree
+ * 
+ */
+class AABB {
+public:
+    double Dist2ThisAABB(const dVector &Vq, const dVector &stdVar, const dVector &postWeight) {
+        return ((lb-Vq).cwiseMax(Eigen::VectorXd::Zero(Vq.size())) + (Vq-ub).cwiseMax(Eigen::VectorXd::Zero(Vq.size()))).cwiseQuotient(stdVar).cwiseProduct(postWeight).norm();
+    }
+    void CalcBB() {
+        /*!> top layer AABB */
+        if(children.size()) {
+            lb = children[0].lb;
+            ub = children[0].ub;
+            for(auto c: children) {
+                lb = lb.cwiseMin(c.lb);
+                ub = ub.cwiseMax(c.ub);
+            }
+        }
+        /*!> inner AABB */
+        else {
+            lb = features[0]->x;
+            ub = features[0]->x;
+            for(auto f: features) {
+                lb = lb.cwiseMin(f->x);
+                ub = ub.cwiseMax(f->x);
+            }
+        }
+    }
+    std::vector<MocapFeature *> features;
+    std::vector<AABB> children;
+    int flag;
+private:
+    dVector lb;
+    dVector ub;
+};
+
+
 
 /**
  * we build motion database X.
@@ -66,20 +118,38 @@ public:
     MotionIndex searchBestMatchByQuery(const dVector &xq) {
         double minLoss = INFINITY;
         MotionIndex minIdx = {-1, -1};
+        
+        for (auto &b: aabb_) {
+            if (b.Dist2ThisAABB(xq, sigma_, weight_) < minLoss) {
+                for (auto &bb: b.children) {
+                    if (bb.Dist2ThisAABB(xq, sigma_, weight_) < minLoss) {
+                        for (auto f: bb.features) {
+                            double dist = (f->x - xq).cwiseQuotient(sigma_).cwiseProduct(weight_).norm();
+                            if (dist < minLoss) {
+                                minLoss = dist;
+                                minIdx = {f->datasetIdx, f->motionIdx};
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
+#ifdef USE_LEGACY_LINEAR_SEARCH
         // normalized query
         dVector xqNormalized = (xq - mu_).array() / sigma_.array();
 
         for (const auto &f : features_) {
             dVector xNormalized = (f.x - mu_).array() / sigma_.array();
 
-            double loss = (xNormalized - xqNormalized).norm();
+            double loss = (xNormalized - xqNormalized).cwiseProduct(weight_).norm();
             
             if (loss < minLoss) {
                 minLoss = loss;
                 minIdx = {f.datasetIdx, f.motionIdx};
             }
         }
+#endif
 
         return minIdx;
     }
@@ -108,6 +178,92 @@ public:
         if (idx.second >= clips_[idx.first]->getFrameCount())
             throw std::runtime_error("getMotionByMotionIndex error: wrong index");
         return clips_[idx.first]->getState(idx.second);
+    }
+
+   void drawDebugInfo(const gui::Shader &shader, MocapSkeleton *skeleton, int id) {
+        // draw query info
+        {
+            
+            // future trajectory
+            dVector xq = features_[id].x;
+            P3D characterPos = P3D(skeleton->root->state.pos.x, 0, skeleton->root->state.pos.z);
+            Quaternion characterQ = calc_facing_quat(skeleton->root->state.orientation);
+            V3D tt1(xq[0], 0, xq[1]);
+            tt1 = characterQ * tt1;
+            V3D tt2(xq[2], 0, xq[3]);
+            tt2 = characterQ * tt2;
+            V3D tt3(xq[4], 0, xq[5]);
+            tt3 = characterQ * tt3;
+            drawSphere(characterPos + tt1, 0.02, shader, V3D(0, 0, 0), 0.5);
+            drawSphere(characterPos + tt2, 0.02, shader, V3D(0, 0, 0), 0.5);
+            drawSphere(characterPos + tt3, 0.02, shader, V3D(0, 0, 0), 0.5);
+
+            // future heading
+            V3D td1(xq[6], 0, xq[7]);
+            td1 = characterQ * td1;
+            V3D td2(xq[8], 0, xq[9]);
+            td2 = characterQ * td2;
+            V3D td3(xq[10], 0, xq[11]);
+            td3 = characterQ * td3;
+            drawArrow3d(characterPos + tt1, td1 * 0.15, 0.01, shader, V3D(0, 0, 0), 0.5);
+            drawArrow3d(characterPos + tt2, td2 * 0.15, 0.01, shader, V3D(0, 0, 0), 0.5);
+            drawArrow3d(characterPos + tt3, td3 * 0.15, 0.01, shader, V3D(0, 0, 0), 0.5);
+
+            // foot position
+            V3D ft1(xq[12], xq[13], xq[14]);
+            ft1 = characterQ * ft1;
+            V3D ft2(xq[15], xq[16], xq[17]);
+            ft2 = characterQ * ft2;
+            // V3D ft3(xq[18], xq[19], xq[20]);
+            // ft3 = characterQ * ft3;
+            // V3D ft4(xq[21], xq[22], xq[23]);
+            // ft4 = characterQ * ft4;
+
+            // foot velocity
+            V3D ft1dot(xq[18], xq[19], xq[20]);
+            ft1dot = characterQ * ft1dot;
+            V3D ft2dot(xq[21], xq[22], xq[23]);
+            ft2dot = characterQ * ft2dot;
+            // V3D ft3dot(xq[30], xq[31], xq[32]);
+            // ft3dot = characterQ * ft3dot;
+            // V3D ft4dot(xq[33], xq[34], xq[35]);
+            // ft4dot = characterQ * ft4dot;
+#if 1
+            double feetHeightThreshold = 0.055;
+            double feetSpeedThreshold = 0.8;
+
+            // contact
+            V3D f1color(1, 1, 0);
+            V3D f2color(1, 1, 0);
+            // V3D f3color(1, 1, 0);
+            // V3D f4color(1, 1, 0);
+            if (ft1.y() < feetHeightThreshold && ft1dot.norm() < feetSpeedThreshold)
+                f1color = V3D(0, 1, 1);
+            if (ft2.y() < feetHeightThreshold && ft2dot.norm() < feetSpeedThreshold)
+                f2color = V3D(0, 1, 1);
+            // if (ft3.y() < feetHeightThreshold && ft3dot.norm() < feetSpeedThreshold)
+            //     f3color = V3D(0, 1, 1);
+            // if (ft4.y() < feetHeightThreshold && ft4dot.norm() < feetSpeedThreshold)
+            //     f4color = V3D(0, 1, 1);
+
+            drawSphere(characterPos + ft1, 0.02, shader, f1color, 0.5);
+            drawSphere(characterPos + ft2, 0.02, shader, f2color, 0.5);
+            // drawSphere(characterPos + ft3, 0.02, shader, f3color, 0.5);
+            // drawSphere(characterPos + ft4, 0.02, shader, f4color, 0.5);
+
+            drawArrow3d(characterPos + ft1, ft1dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
+            drawArrow3d(characterPos + ft2, ft2dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
+            // drawArrow3d(characterPos + ft3, ft3dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
+            // drawArrow3d(characterPos + ft4, ft4dot * 0.15, 0.01, shader, V3D(1, 0.55, 0), 0.5);
+
+            // root velocity
+            // let's just draw from character pos (for projecting to ground)
+            V3D htdot(xq[24], xq[25], xq[26]);
+            htdot = characterQ * htdot;
+            drawSphere(characterPos, 0.02, shader, V3D(1, 0, 1), 0.5);
+            drawArrow3d(skeleton->root->state.pos, htdot * 0.15, 0.01, shader, V3D(1, 0, 1), 0.5);
+#endif
+        }
     }
 
 private:
@@ -141,6 +297,16 @@ private:
 
         // reserve features
         features_.reserve(getTotalFrameCount());
+        
+        /*!> total number of top level AABB 
+        * Note that AABB cannot cross clips */
+        int numTopAABB = 0;
+        for (auto &c : clips_) {
+            numTopAABB += (int)std::ceil((c->getFrameCount()-60)/64.0);
+        }
+        std::cout << "OuterAABB counts = " << numTopAABB << std::endl;
+        aabb_.reserve(numTopAABB);
+        std::cout << "aabb_.size() = " << aabb_.size() << std::endl;
 
         // store feature vector of each frame of dataset
         //
@@ -164,6 +330,8 @@ private:
             // const V3D worldForward = skeleton->forwardAxis;
             const V3D worldForward(0,1,0);
 
+            aabb_.push_back(AABB()); /*!>  new outer AABB */
+            aabb_.back().children.push_back(AABB()); /*!< new inner AABB */
 
             // becareful! we save 61 frames into one feature.
             for (uint j = 0; j < c->getFrameCount() - 60; j++) {
@@ -301,7 +469,27 @@ private:
                 features_.back().x = x;
                 features_.back().motionIdx = j;
                 features_.back().datasetIdx = i;
+
+                /*!> add node to AABB */
+                aabb_.back().children.back().features.push_back(&features_.back());
+
+                if (aabb_.back().children.back().features.size() == 16) {
+                    aabb_.back().children.back().CalcBB(); /*!< finish last inner AABB */
+                    if (aabb_.back().children.size() == 4) { /*!< outer AABB full */
+                        aabb_.back().CalcBB(); /*!< finish last outer AABB */
+                        aabb_.push_back(AABB()); /*!< add new outer AABB */
+                        aabb_.back().children.reserve(4);
+                        aabb_.back().children.push_back(AABB()); /*!< add new inner AABB */
+                        aabb_.back().children.back().features.reserve(16);
+                    }
+                    else {
+                        aabb_.back().children.push_back(AABB()); /*!< add a new inner AABB */
+                        aabb_.back().children.back().features.reserve(16);
+                    }
+                }
             }
+            aabb_.back().children.back().CalcBB(); /*!< finishing the last innerd AABB, may not be full */
+            aabb_.back().CalcBB(); /*!< finishing the last outer AABB, may not be full */
         }
 
         // normalize features
@@ -349,8 +537,11 @@ private:
 
     // mean and std of features
     dVector mu_, sigma_;
-};
 
+    Eigen::VectorXd weight_ {{2,2,2,2,2,2, 2,2,2,2,2,2, 1,1,1,1,1,1,0.2,0.2,0.2,0.2,0.2,0.2,1,1,1}};
+
+    std::vector<AABB> aabb_;
+};
 }  // namespace crl::mocap
 
 #endif  //CRL_MOCAP_MOTIONDATABASE_H
