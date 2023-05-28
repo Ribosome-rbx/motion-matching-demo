@@ -65,6 +65,9 @@ public:
     Trajectory3D speedProfile;
     Trajectory1D heightProfile;
 
+    // camera direction rotate
+    std::list<V3D> cameraDirections;
+
     // customized draw
     V3D goalVel, cameraDir;
     Trajectory3D PosTraj;
@@ -499,6 +502,46 @@ public:
         this->KEY_C = false;
         this->shouldStop_ = false;
         return true;
+    }
+
+    void cameraRotation(crl::gui::TrackingCamera &camera){
+        V3D velocity = skeleton_->root->state.velocity;
+        velocity[1] = 0;
+        velocity = velocity.normalized();
+
+        V3D old_velocity = V3D(P3D(camera.direction[0], 0, camera.direction[2])).normalized();
+
+        if(old_velocity.dot(velocity) < 0.9){
+            cameraDirections.clear();
+            // spring damper to rotate camera smoothly
+            double dtTraj = 1.0 / 60;  // dt
+            double t = 0;
+            double halflife = 0.5f;
+            
+            while (t <= 1.0) {
+                V3D goal_vel = velocity; // V0 in the world frame
+                V3D curr_vel = old_velocity; // V0 in the world frame
+                P3D curr_pos = P3D(0,0,0); // random init
+                V3D init_a = goal_vel - curr_vel; // initial acceleration in the world frame
+                
+                // compute future camera pose
+                spring_character_update(curr_pos[0], curr_vel[0], init_a[0], goal_vel[0], halflife, t);
+                spring_character_update(curr_pos[2], curr_vel[2], init_a[2], goal_vel[2], halflife, t);
+
+                // store trajectory at time t
+                cameraDirections.push_back(curr_vel);
+
+                t += dtTraj;
+            }
+            cameraDirections.pop_front();
+        }
+        if(cameraDirections.size() > 0){
+            V3D cur_velocity = cameraDirections.front();
+            cameraDirections.pop_front();
+            camera.direction[0] = cur_velocity[0];
+            camera.direction[1] = 0;
+            camera.direction[2] = cur_velocity[2];
+        }
     }
 
 private:
