@@ -14,7 +14,6 @@
   <div align="center"></div>
 </p>
 <p align="center">
-    <iframe width="560" height="315" src="https://www.youtube.com/embed/1ZTEGm7lSjg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 </p>
 <br>
 
@@ -64,19 +63,15 @@ Users can control the digital character using keyboard control, drawed trajector
 [to be finished]
 
 <details>
-  <summary>[Video demo for drawed trajectory (click to expand)]</summary>
-  
-  <iframe width="560" height="315" src="https://www.youtube.com/embed/mbaMwk-pqMA" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+  <summary>[Demo for drawed trajectory (click to expand)]</summary>
 
 </details>
 
 ### Human Pose Control
 [to be finished]
 <details>
-  <summary>[Video demo for human pose control (click to expand)]</summary>
+  <summary>[Demo for human pose control (click to expand)]</summary>
   
-  <iframe width="560" height="315" src="https://www.youtube.com/embed/55wjVJXs2dg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-
 </details>
 
 ### External Terrain Object Loading
