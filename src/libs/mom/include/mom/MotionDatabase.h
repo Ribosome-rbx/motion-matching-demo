@@ -5,6 +5,8 @@
 #ifndef CRL_MOCAP_MOTIONDATABASE_H
 #define CRL_MOCAP_MOTIONDATABASE_H
 
+#define USE_AABB_SEARCH
+
 #include "mocap/MocapClip.h"
 
 namespace crl::mocap {
@@ -38,14 +40,66 @@ static Matrix3x3 calc_facing_rotm(Quaternion &rootQ) {
     return new_rotm;
 }
 
+/**
+ * @brief Use this whenever you want "Character Q"
+ * 
+ * @param rootQ raw root quaternion from mocapClip
+ * @return Quaternion Charater Q
+ */
 inline Quaternion calc_facing_quat(Quaternion &rootQ) {
     return Quaternion(calc_facing_rotm(rootQ));
 }
 
+/**
+ * @brief Use this to get "character yaw angle"
+ * @note since atan2 was used, result ranges in [-pi, pi]
+ * @param rootQ raw root quaternion from mocapClip
+ * @return double character yaw angle
+ */
 inline double calc_facing_yaw(Quaternion &rootQ) {
     Matrix3x3 rotm = calc_facing_rotm(rootQ);
     return std::atan2(rotm(2,0), rotm(0,0));
 }
+
+
+/**
+ * @brief 2 layer AABB tree
+ * 
+ */
+class AABB {
+public:
+    double Dist2ThisAABB(const dVector &Vq, const dVector &stdVar, const dVector &postWeight) {
+        return ((lb-Vq).cwiseMax(Eigen::VectorXd::Zero(Vq.size())) + (Vq-ub).cwiseMax(Eigen::VectorXd::Zero(Vq.size()))).cwiseQuotient(stdVar).cwiseProduct(postWeight).norm();
+    }
+    void CalcBB() {
+        /*!> top layer AABB */
+        if(children.size()) {
+            lb = children[0].lb;
+            ub = children[0].ub;
+            for(auto c: children) {
+                lb = lb.cwiseMin(c.lb);
+                ub = ub.cwiseMax(c.ub);
+            }
+        }
+        /*!> inner AABB */
+        else {
+            lb = features[0]->x;
+            ub = features[0]->x;
+            for(auto f: features) {
+                lb = lb.cwiseMin(f->x);
+                ub = ub.cwiseMax(f->x);
+            }
+        }
+    }
+    std::vector<MocapFeature *> features;
+    std::vector<AABB> children;
+    int flag;
+private:
+    dVector lb;
+    dVector ub;
+};
+
+
 
 /**
  * we build motion database X.
@@ -72,18 +126,27 @@ public:
         double minLoss = INFINITY;
         MotionIndex minIdx = {-1, -1};
 
+#ifdef USE_AABB_SEARCH
+        for (auto &b: aabb_) {
+            if (b.Dist2ThisAABB(xq, sigma_,  this->use_y_?weight33_:weight27_) < minLoss) {
+                for (auto &bb: b.children) {
+                    if (bb.Dist2ThisAABB(xq, sigma_, this->use_y_?weight33_:weight27_) < minLoss) {
+                        for (auto f: bb.features) {
+                            double dist = (f->x - xq).cwiseQuotient(sigma_).cwiseProduct(this->use_y_?weight33_:weight27_).norm();
+                            if (dist < minLoss) {
+                                minLoss = dist;
+                                minIdx = {f->datasetIdx, f->motionIdx};
+                            }
+                        }
+                    }
+                }
+            }
+        }
+#else
         // normalized query
         dVector xqNormalized = (xq - mu_).array() / sigma_.array();
 
-        int traj_feat_number;
-        if (this->use_y_)
-        {
-            traj_feat_number = 18;
-        }
-        else
-        {
-            traj_feat_number = 12;
-        }
+        int traj_feat_number = this->use_y_?18:12;
         int other_feat_number = this->featureDim_ - traj_feat_number;
 
         for (const auto &f : features_) {
@@ -107,6 +170,7 @@ public:
                 minIdx = {f.datasetIdx, f.motionIdx};
             }
         }
+#endif
 
         return minIdx;
     }
@@ -168,6 +232,16 @@ private:
 
         // reserve features
         features_.reserve(getTotalFrameCount());
+        
+        /*!> total number of top level AABB 
+        * Note that AABB cannot cross clips */
+        int numTopAABB = 0;
+        for (auto &c : clips_) {
+            numTopAABB += (int)std::ceil((c->getFrameCount()-60)/64.0);
+        }
+        // std::cout << "OuterAABB counts = " << numTopAABB << std::endl;
+        aabb_.reserve(numTopAABB);
+        // std::cout << "aabb_.size() = " << aabb_.size() << std::endl;
 
         // store feature vector of each frame of dataset
         //
@@ -191,6 +265,8 @@ private:
             // const V3D worldForward = skeleton->forwardAxis;
             const V3D worldForward(0,1,0);
 
+            aabb_.push_back(AABB()); /*!>  new outer AABB */
+            aabb_.back().children.push_back(AABB()); /*!< new inner AABB */
 
             // becareful! we save 61 frames into one feature.
             for (uint j = 0; j < c->getFrameCount() - 60; j++) {
@@ -394,7 +470,27 @@ private:
                 features_.back().x = x;
                 features_.back().motionIdx = j;
                 features_.back().datasetIdx = i;
+
+                /*!> add node to AABB */
+                aabb_.back().children.back().features.push_back(&features_.back());
+
+                if (aabb_.back().children.back().features.size() == 16) {
+                    aabb_.back().children.back().CalcBB(); /*!< finish last inner AABB */
+                    if (aabb_.back().children.size() == 4) { /*!< outer AABB full */
+                        aabb_.back().CalcBB(); /*!< finish last outer AABB */
+                        aabb_.push_back(AABB()); /*!< add new outer AABB */
+                        aabb_.back().children.reserve(4);
+                        aabb_.back().children.push_back(AABB()); /*!< add new inner AABB */
+                        aabb_.back().children.back().features.reserve(16);
+                    }
+                    else {
+                        aabb_.back().children.push_back(AABB()); /*!< add a new inner AABB */
+                        aabb_.back().children.back().features.reserve(16);
+                    }
+                }
             }
+            aabb_.back().children.back().CalcBB(); /*!< finishing the last innerd AABB, may not be full */
+            aabb_.back().CalcBB(); /*!< finishing the last outer AABB, may not be full */
         }
 
         // normalize features
@@ -443,7 +539,13 @@ private:
 
     // mean and std of features
     dVector mu_, sigma_;
-    Eigen::VectorXd weight_ {{2,2,2,2,2,2, 2,2,2,2,2,2, 1,1,1,1,1,1, 0.2,0.2,0.2,0.2,0.2,0.2, 1,1,1}};
+    // Eigen::VectorXd weight_ {{2,2,2,2,2,2, 2,2,2,2,2,2, 1,1,1,1,1,1, 0.2,0.2,0.2,0.2,0.2,0.2, 1,1,1}};
+    Eigen::VectorXd weight27_ {{0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,
+                                0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2}};
+    Eigen::VectorXd weight33_ {{0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,0.8,
+                                0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2,0.2}};
+
+    std::vector<AABB> aabb_;
 };
 
 }  // namespace crl::mocap
